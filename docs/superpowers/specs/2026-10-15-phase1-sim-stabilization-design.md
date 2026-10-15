@@ -1,7 +1,7 @@
 # Phase 1 — Simulation Stabilization — Design
 
 **Date:** 2026-10-15
-**Status:** Design approved section by section (CI host, interpolation scope, parity sign-off, test-harness approach, §3–§8). Awaiting written-spec review.
+**Status:** Approved by the user. Refined during planning (trigger objects get IDs, `MiniCore/src/UnitTests/` ignore negation, alpha via `MCWorld::setRenderAlpha`, `simtool`, single `recovered` event). Plan: `docs/superpowers/plans/2026-10-15-phase1-sim-stabilization.md`.
 **Parent:** [DustRacing2D Upgrade — Scope & Phased Plan (rev 3)](2026-10-15-dustracing2d-upgrade-scope.md), Phase 1.
 **Inputs:** [Phase 0 findings](../../phase0/findings.md) (decisions 2, 3, 6; open items), [S1](../../phase0/findings/s1.md), [dependency map and hack log](../../phase0/dependency-map.md).
 
@@ -56,11 +56,14 @@ Read from `main` (upstream DustRacing2D v2.2.0) during brainstorming, in additio
 - **Ignore rules.** Add negations to `DustRacing2D/.gitignore` (after the existing patterns):
   ```gitignore
   !src/game/unittests/
+  !src/game/unittests/**
+  !src/game/MiniCore/src/UnitTests/
+  !src/game/MiniCore/src/UnitTests/**
   !src/game/simtests/
   !src/game/simtests/**
   !src/game/simtests/**/*.json
   ```
-  Verify with `git check-ignore -v` on a sample fixture before the first fixture commit. The negation is a deliberate local divergence from upstream and is recorded in the plan.
+  macOS git runs with `core.ignorecase=true`, so `unittests/` also ignores MiniCore's `UnitTests/`; hence the extra negation. Verify with `git check-ignore -v` on a sample fixture before the first fixture commit. The negation is a deliberate local divergence from upstream and is recorded in the plan.
 - **GitHub remote.** The user creates the GitHub repository and adds it as `origin`. That step is outward-facing, so the plan asks the user to do it; the agent does not push to a new remote.
 - **Root workflow** `.github/workflows/sim.yml`:
   - Triggers: `push` and `pull_request` on `main`; `workflow_dispatch` with an input that runs the parity gate.
@@ -114,6 +117,8 @@ DustRacing2D/src/game/simtests/
   parity/                 parity_runner.cpp + baseline-macos-arm64.json
   validation/             track_asset_validation.cpp
   inputs/                 *.input scripted-input files
+  unit/                   SimRandom, accumulator, ticksFor, hash, input-script unit tests
+  tools/                  simtool: `simtool record <case|all>`, `simtool parity baseline|check`
 ```
 
 `SimHarness` steps `Scene`-equivalent logic per tick: process inputs, update AI, `MCWorld::stepTime(16)`, `Race::update(16 ms)`, tick counter. It mirrors `Scene::updateFrame`'s order exactly; the plan extracts that order into one shared function if the duplication would be more than a few lines.
@@ -175,8 +180,8 @@ Scope: cars, their child objects (number plates, tyre visuals) and the camera. P
 
 - `MCObject` gains render-only state: `m_interpolated` flag, `m_prevLocation`, `m_prevAngle`, and a `capturePreviousPose()` method. `RaceSetup` flags each car and its children.
 - At the start of each sim step, `MCWorld::stepTime` calls `capturePreviousPose()` on every flagged object.
-- The GL renderer (`MCSurfaceObjectRenderer`, `MCSurfaceObjectRendererLegacy` and the shadow paths) draws a flagged object at `lerp(prev, cur, alpha)`, with angles along the shortest arc. The renderer receives `alpha` from `Renderer::renderNow(alpha)` through `MCWorld::render`.
-- The camera follows the interpolated pose of the player's car (`Scene::updateCameraLocation`).
+- The GL renderer (`MCShape::render`/`renderShadow`, `MCSurfaceObjectRenderer`, `MCSurfaceObjectRendererLegacy`) draws a flagged object at `lerp(prev, cur, alpha)`, with angles along the shortest arc. A jump of more than 256 world units (stuck recovery) snaps instead of lerping. `game.cpp` publishes `alpha` through the static `MCWorld::setRenderAlpha(float)` before rendering.
+- Camera updates move from `Scene::updateFrame` (per tick) to `Scene::updateCameras()` (per frame, after the tick loop) and follow the interpolated pose of the player's car.
 - The sim never reads the previous pose. A determinism test (§6.2) confirms sim hashes are identical with interpolation flags on and off.
 - These renderer edits sit in the GL-only code that `MC_HEADLESS` compiles out, so the headless build is unaffected.
 
@@ -202,8 +207,8 @@ Scope: cars, their child objects (number plates, tyre visuals) and the camera. P
 
 - `MCObject` gains `uint32_t stableId() const` (0 = none) and a private world-generation tag.
 - `MCWorld` keeps a `uint32_t m_nextStableId` and `uint32_t m_generation`. `clear()` resets the counter to 1 and increments the generation.
-- `MCWorld::addObject` assigns the next ID when `isPhysicsObject() && !bypassCollisions()` and the object has no ID for the current generation. An object keeps its ID until the world is cleared, including across `removeObject`/`addObject` in the same generation.
-- Particles (`bypassCollisions`) and tree branches (non-physics) never get an ID, so cosmetic churn cannot shift IDs (F6).
+- `MCWorld::addObject` assigns the next ID when `!isParticle() && (isPhysicsObject() || isTriggerObject()) && !bypassCollisions()` and the object has no ID for the current generation. Trigger objects (pits, bridges) take part in collision pairs, so they need IDs too; this matches `MCObjectGrid::getPossibleCollisions`' own filter. An object keeps its ID until the world is cleared, including across `removeObject`/`addObject` in the same generation.
+- Particles (`bypassCollisions`) and tree branches (non-physics, non-trigger) never get an ID, so cosmetic churn cannot shift IDs (F6).
 - Determinism follows from the add order, which is deterministic: `RaceSetup` adds track objects in file order and cars in index order (F10).
 - Debug builds assert ID uniqueness within a generation.
 
@@ -255,7 +260,7 @@ Sectors are not tested: the game has none. They arrive with Phase 2's timing mod
 ### 6.3 Golden races
 
 - **State hash** every 60 ticks: FNV-1a 64 over the raw IEEE bits of each car's `x, y, angle, vx, vy, angularVelocity`, plus each car's lap, position and current checkpoint index, plus `SimRandom::state()`.
-- **Event log**, exact: `lap` (car, lap, `lapMs`), `position` changes, `pit`, `finish`, `stuck` and `recovered`, each stamped with its tick.
+- **Event log**, exact: `lap` (car, lap, `lapMs`), `position` changes, `pit`, `finish` and `recovered`, each stamped with its tick. Upstream detects a stuck car and moves it in the same call, so stuck and recovered are one `recovered` event (from a new `Race::carRecovered` signal).
 - **Cases:**
 
   | Fixture | Track | Cars | Seed | Laps | Input |
@@ -264,7 +269,7 @@ Sectors are not tested: the game has none. They arrive with Phase 2's timing mod
   | `suzuka-12-s42` | Suzuka | 12 AI | 42 | 3 | — |
   | `twister-12-s42` | Twister | 12 AI | 42 | 3 | — |
   | `monza-1-s42` | Monza | 1 AI | 42 | 3 | — |
-  | `monza-input-s7` | Monza | car 0 scripted, 11 AI | 7 | 2 | `inputs/monza-lap.input` |
+  | `monza-input-s7` | Monza | car 0 scripted, 11 AI | 7 | 2 (capped at 6000 ticks: a human car is never stuck-recovered, so it may not finish) | `inputs/monza-lap.input` |
 
 - **Input script format** (`*.input`): one line per change, `tick accelerate brake left right` (0/1 each), held until the next line. This is the Phase 1 input contract (§7.1).
 - **Fixture** `golden/fixtures/<platform>/<case>.json`, with `platform` one of `macos-arm64` or `linux-x86_64`:
@@ -275,7 +280,7 @@ Sectors are not tested: the game has none. They arrive with Phase 2's timing mod
   ```
 - Each platform compares only against its own fixtures. Cross-platform equality is not required in Phase 1: libm differs, and x86-64 vs arm64 is deferred by scope §8.
 - **On failure:** print the first divergent hash index (as a tick), the per-car field diff at that tick, and the first divergent event.
-- **`simtests --record <case|all>`** rewrites the fixtures for the current platform. Fixtures are recorded only after §4 and §5 have landed (step 7).
+- **`simtool record <case|all>`** rewrites the fixtures for the current platform. Linux fixtures come from the CI `workflow_dispatch` `record` input as an artifact. Fixtures are recorded only after §4 and §5 have landed (step 7).
 - RelWithDebInfo is the recording configuration. CI builds the same.
 
 ### 6.4 Parity gate
@@ -321,7 +326,7 @@ Sign-off is recorded in `docs/phase1/verification.md`.
 
 - **State:** per-car pose, velocities, speed (true `|v| × 3.125` m/s, distinct from the display `speedInKmh()`), lap, position, checkpoint, route progress, tyre wear, damage, gear; race-level tick, phase, lap count. Units and frames per S1 (world units, heading in degrees CCW from +x, y-up).
 - **Tick numbering:** tick N is the state after N steps; `tMs = N × 16`.
-- **Events:** `lap` with `lapMs`, `position`, `pit`, `finish`, `collision`, `stuck`, `recovered`, each with a tick.
+- **Events:** `lap` with `lapMs`, `position`, `pit`, `finish`, `recovered` (stuck detection and recovery coincide), each with a tick; `collision` as a counter only in Phase 1.
 - **Input:** per-tick per-car control `{accelerate, brake, left, right}`, as in §6.3. Analog steering is Phase 2.
 - **Semantics the decision-6 amendments need:**
   - `pos` before checkpoint 0 is the grid slot;
