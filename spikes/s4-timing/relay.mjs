@@ -28,6 +28,7 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 wss.on('connection', (ws, req) => {
+  ws.on('error', (e) => console.error('relay: socket error', e.message));
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const sessionId = url.searchParams.get('session');
   if (!sessionId) return ws.close(1008, 'session required');

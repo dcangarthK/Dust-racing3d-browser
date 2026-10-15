@@ -75,3 +75,11 @@ test('detach stops delivery', () => {
   hub.ingest(ev(0)); detach(); hub.ingest(ev(1));
   assert.deepEqual(c.got.map((m) => m.seq), [0]);
 });
+
+test('resume consumer on an empty hub gets no duplicates when producer re-sends from -1', () => {
+  const hub = new SessionHub(); // relay restarted, empty
+  const c = fakeConsumer();
+  hub.attach(S, c, 2); // watcher reconnects before the producer
+  [ev(0), ev(1), ev(2), ev(3), ev(4)].forEach((m) => hub.ingest(m));
+  assert.deepEqual(c.got.map((m) => m.seq), [3, 4]);
+});
