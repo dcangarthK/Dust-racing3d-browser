@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://racing-telemetry-gcp.local/contracts/telemetry-v0/schema.json",
+  "title": "DustRacing2D telemetry v0",
+  "type": "object",
+  "required": ["type", "sessionId", "schemaVersion", "seq", "tick", "tMs"],
+  "properties": {
+    "type": { "enum": ["snapshot", "event", "result"] },
+    "sessionId": { "type": "string", "format": "uuid" },
+    "schemaVersion": { "const": "0.1.0" },
+    "seq": { "type": "integer", "minimum": 0 },
+    "tick": { "type": "integer", "minimum": 0 },
+    "tMs": { "type": "integer", "minimum": 0 },
+    "wallMs": { "type": "integer", "minimum": 0, "description": "Optional producer wall-clock epoch ms; used for latency measurement." }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "type": { "const": "snapshot" },
+        "phase": { "enum": ["countdown", "racing", "finished"] },
+        "cars": { "type": "array", "items": { "$ref": "#/$defs/car" } }
+      },
+      "required": ["phase", "cars"]
+    },
+    {
+      "properties": {
+        "type": { "const": "event" },
+        "eventId": { "type": "string", "minLength": 1 },
+        "eventType": { "enum": ["lightsOut", "lap", "positionChange", "finish"] },
+        "carId": { "type": "integer", "minimum": 0 },
+        "data": { "type": "object" }
+      },
+      "required": ["eventId", "eventType", "data"]
+    },
+    {
+      "properties": {
+        "type": { "const": "result" },
+        "classification": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["carId", "pos", "laps", "totalMs", "bestLapMs"],
+            "properties": {
+              "carId": { "type": "integer", "minimum": 0 },
+              "pos": { "type": "integer", "minimum": 1 },
+              "laps": { "type": "integer", "minimum": 0 },
+              "totalMs": { "type": "integer", "minimum": 0 },
+              "bestLapMs": { "type": ["integer", "null"], "minimum": 0 }
+            }
+          }
+        }
+      },
+      "required": ["classification"]
+    }
+  ],
+  "$defs": {
+    "car": {
+      "type": "object",
+      "required": ["id", "x", "y", "heading", "vx", "vy", "speedKmh", "throttle", "brake", "steer", "gear", "lap", "progress", "pos"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 0 },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "heading": { "type": "number" },
+        "vx": { "type": "number" },
+        "vy": { "type": "number" },
+        "speedKmh": { "type": "number", "minimum": 0 },
+        "throttle": { "type": "number", "minimum": 0, "maximum": 1 },
+        "brake": { "type": "number", "minimum": 0, "maximum": 1 },
+        "steer": { "type": "number", "minimum": -1, "maximum": 1 },
+        "gear": { "type": "integer" },
+        "lap": { "type": "integer", "minimum": 0 },
+        "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pos": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
