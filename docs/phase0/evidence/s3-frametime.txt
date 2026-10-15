@@ -1,0 +1,11 @@
+S3 frame-time measurement
+URL: http://localhost:5173/?track=monza&cam=chase (vite dev, three 0.176.0, WebGLRenderer antialias, shadows on, pixelRatio min(dpr,2))
+Window: 1024x768 CSS px, devicePixelRatio 2 (in-app browser pane)
+Display refresh: ~120 Hz (inferred: mean rAF rate 119.8 Hz, p50 8.3 ms; not queried from the OS)
+Duration: 69.3 s of rAF callbacks (8031 samples; first 60 discarded -> n=7971)
+Feed: mock-12car-3lap.telemetry.ndjson, 1495 snapshots, 74.7 s, 12 cars
+Method: window.__frameStats.samples.slice(60).sort(); percentiles by floor(n*p)
+Result (ms): p50 8.3  p95 9.8  p99 10.2  max 51.6  (frames >20 ms: 1 of 7971)
+Mean rate 119.8 Hz
+Caveat: the browser pane pauses rAF while hidden (0 samples in a 55 s hidden window); this run was taken with the pane visible.
+Caveat: rAF interval measures frame pacing under vsync, not GPU/CPU cost per frame; a 120 Hz vsync cap hides headroom.
