@@ -1,7 +1,7 @@
 # DustRacing2D Upgrade — Scope & Phased Plan
 
 **Date:** 2026-10-15 (rev 3)
-**Status:** Scoping. Architecture approved (hybrid, three.js). Phase plan awaiting approval. No code or per-phase specs written yet.
+**Status:** Architecture approved (hybrid, three.js). Phase 0 complete (`docs/phase0/findings.md`) except exit criterion 6, the user watching the S5 demo, which is pending. Phase 1 not yet specified.
 **Codebase:** `DustRacing2D/` (v2.2.0, upstream juzzlin/DustRacing2D)
 **Reviews folded in:** two Codex assessments (architecture take; critique of rev 1); Phase 0 findings (`docs/phase0/findings.md`, rev 3). See §12 Decision log.
 
@@ -25,7 +25,7 @@ As stated:
 
 - **Branding:** original team names, car designs, liveries, logos and terminology. "Formula-style", not "Formula 1", unless a licence is obtained.
 - **Licensing:** DustRacing2D code is GPLv3 and its art is CC BY-SA 3.0. `apex-gp` declares ISC in `package.json` but has no LICENSE file and an empty `author`. Confirm copyright ownership and add a full ISC notice before copying any apex-gp code. ISC is GPL-compatible; the combined distribution is GPLv3.
-- **Toolchain:** none installed locally — no `cmake`, `ninja`, Qt 6.4+ or Emscripten (emsdk). Setting these up is step zero.
+- **Toolchain:** installed in Phase 0 by `tools/bootstrap.sh` (cmake, Ninja, pkg-config, Qt 6.12, OpenAL Soft, libvorbis via Homebrew; emsdk 4.0.10). Exact versions, including Node (reported, not installed, by the script), are in `docs/phase0/toolchain-versions.txt`. The desktop build is green locally.
 - **Authority:** browser WASM is authoritative only for local single-player races. Trusted leaderboards, ranked events and competitive multiplayer need server authority or server-side replay validation, because the browser can tamper with its own WASM and telemetry.
 
 ---
@@ -115,9 +115,9 @@ flowchart LR
 - **Same build, same platform:** identical seed + inputs + rules version → identical state hashes, compared every N ticks.
 - **Native vs WASM:**
   - race results and discrete events (laps, positions, pit stops, finishes) must agree exactly;
-  - continuous state (position, velocity, angle) must also agree exactly. Phase 0 (S2) measured bit-identical MiniCore state, native arm64 vs WASM, over 6/6 runs of up to 20000 ticks, when every native sim translation unit is built with `-ffp-contract=off` and without `-ffast-math`/`-Ofast`;
+  - continuous state (position, velocity, angle) must also agree exactly. Phase 0 (S2) measured bit-identical MiniCore state, native arm64 vs WASM, over 6/6 runs of up to 20000 ticks, under two preconditions: every native sim translation unit is built with `-ffp-contract=off` and without `-ffast-math`/`-Ofast`, and collision pairs and contacts are processed in a deterministic order (S1 hack rows 39-42, or the per-world stable IDs from Phase 1). S2 built MiniCore from the S1 spike branch, so it never measured without that ordering;
   - fallback, only if native cannot use that flag: position 0.002 m and heading 0.001 rad, valid only for short sessions. Under default flags one collision outcome flipped at tick 17313 and the runs separated by 2.7 m, so long sessions compare discrete events and keyframes only;
-  - S2 covered MiniCore physics only. Phase 2 reruns the native-vs-WASM diff with Dust car physics (`car.cpp`, `tire.cpp`, gearbox) and game-code libm calls before this contract is relied on.
+  - S2 covered MiniCore physics only, with no libm calls from game code. Phase 2 reruns the native-vs-WASM diff with the full sim (Dust car physics `car.cpp`, `tire.cpp`, gearbox, and game-code libm calls such as `std::atan2` in `ai.cpp:70` and `std::pow` in `car.cpp:231`) before this contract is relied on. Native macOS libm and Emscripten's musl are different implementations. If that rerun shows libm-dependent drift, sim code uses a single portable math implementation (for example `MCTrigonom`-style lookup tables); failing that, native-vs-WASM checks fall back to discrete events plus keyframes.
 - **Replays** store seed, inputs, rules version, sim build version and periodic authoritative keyframes. Replays still need versioning, seeking and migration as physics evolves; determinism makes them *cheaper*, not free.
 
 ### 5.3 Engine bridge
@@ -206,10 +206,11 @@ Spikes. Their code is throwaway; only the answers are kept.
 
 ### Phase 1 — Sim stabilization (inside the existing game)
 - Fixed tick per §5.1, with catch-up cap and render interpolation.
-- Seeded RNG with reset support.
+- Seeded RNG with reset support, with the sim RNG split from a cosmetic RNG before any golden test is recorded. Particles, `TrackObjectFactory`, `Tree` and `CarParticleEffectManager` share the global `MCRandom` stream with the AI (Phase 0 dependency map, row 37), so golden hashes recorded against the shared stream would all change when Phase 2 moves particles render-side.
 - Deterministic collision and contact order: iterate by per-world stable object IDs, not by `MCObject *` address. Phase 0 (S1) found that MiniCore's address-keyed `std::set`/`std::map` made same-seed 12-car races diverge by tick 315; a seeded RNG alone does not make golden tests pass. Validate the change against upstream collision behaviour.
 - **Characterization tests before any refactor:** laps, sectors, positions, pit stops, finishes, collisions, AI recovery.
 - Golden race tests: same seed + inputs → same classification and state hashes.
+- Upstream `DustRacing2D/.gitignore` ignores `unittests/`, `test/` and `*.json` (also `src/contrib/`, `*__*`, `build*`). Adjust the subtree's ignore rules (or `git add -f`) when adding tests under `src/game/unittests/` or JSON golden fixtures, or they are silently left out of commits.
 - State, event and input contracts written down.
 - Track and asset validation in CI.
 
@@ -276,7 +277,7 @@ flowchart LR
 - Multiplayer (only after replay validation works).
 - Web track editor; editor sector and DRS markers.
 - 120 Hz simulation.
-- Exact native/WASM equality across CPU architectures (x86-64 native) and libm implementations. Phase 0 measured arm64 only.
+- Exact native/WASM equality across CPU architectures (x86-64 native). Phase 0 measured arm64 only. libm differences between native and Emscripten are not deferred: Phase 2 measures them with the full sim and, if they cause drift, uses one portable math implementation or falls back to discrete events plus keyframes (§5.2).
 - Extras:
   - replay viewer with seek
   - time-trial ghost car
@@ -294,7 +295,7 @@ flowchart LR
 | # | Risk | Mitigation |
 |---|---|---|
 | 1 | Physics/render fusion in MiniCore (`MCObject`, `MCWorld` owns the renderer) makes extraction much larger than "remove Qt signals" | S1 spike + dependency map before committing to an approach |
-| 2 | Native vs WASM floating-point drift | `-ffp-contract=off` on native sim code gives exact equality (S2); tolerance fallback for short sessions only (§5.2) |
+| 2 | Native vs WASM floating-point drift | `-ffp-contract=off` on native sim code plus deterministic collision order gives exact equality (S2); tolerance fallback for short sessions only (§5.2) |
 | 3 | Fixed tick changes feel or AI behaviour | 16 ms tick close to the old ~16 ms tuning; characterization tests first |
 | 4 | apex-gp frame time is too heavy for mid-range hardware | Quality presets, dynamic resolution, CI frame budgets |
 | 5 | Fragile startup paths (#144, `MCMesh`) | Golden tests cover race start |
@@ -313,7 +314,7 @@ flowchart LR
 
 ## 11. Next Step
 
-Approve the phase plan, then brainstorm **Phase 0** (toolchain + spikes S1–S4) into its own spec.
+Phase 0 is done (pending the user's S5 demo check). Brainstorm **Phase 1** (sim stabilization) into its own spec, starting from `docs/phase0/findings.md` (decisions and open items).
 
 ---
 
@@ -327,15 +328,15 @@ Approve the phase plan, then brainstorm **Phase 0** (toolchain + spikes S1–S4)
 | Pub/Sub off the live path; direct fan-out + hot state | Codex take #1, reinforced in critique |
 | 3-message telemetry contract with sequence and idempotency | Codex take #1 + critique |
 | ~60 Hz fixed tick, not 120 Hz; 16 ms tick due to int-ms MiniCore API | Codex critique + code check (`mcworld.cc:455`) |
-| Tolerance-based native/WASM determinism | Codex critique (rev 1 overclaimed byte-identical) |
+| ~~Tolerance-based native/WASM determinism~~ (superseded in rev 3 by exact equality, below) | Codex critique (rev 1 overclaimed byte-identical) |
 | Extraction must address MiniCore physics/render fusion | Codex critique, verified in `mcobject.hh` / `mcworld.hh` |
 | apex-gp reuse boundaries; port time-at-position gaps | Codex critique, verified in `race.js:134` |
 | Tiered storage: GCS raw, BigQuery summaries | Codex critique |
 | Rules profiles; ship one first | Codex critique (trimmed to one profile) |
 | Emscripten determinism spike instead of a Qt-WASM spike | Rev 2 |
 | Tick length fixed at 16 ms (§5.1) | Rev 3; Phase 0 decision 2, `docs/phase0/findings.md` |
-| Exact native/WASM equality with `-ffp-contract=off` replaces tolerance-first contract; tolerances become a short-session fallback (§5.2, §8, risk 2, Phase 2 build flags) | Rev 3; Phase 0 S2, decision 3, `docs/phase0/findings.md` |
+| Exact native/WASM equality with `-ffp-contract=off` and deterministic collision order replaces tolerance-first contract; tolerances become a short-session fallback; libm drift measured in Phase 2 with a portable-math or events-plus-keyframes contingency (§5.2, §8, risk 2, Phase 2 build flags) | Rev 3; Phase 0 S2, decision 3, `docs/phase0/findings.md` |
 | Producers retain history and re-send after a gateway restart (§5.4); late joiners without `from` already get logged events plus the latest snapshot, so no change there | Rev 3; Phase 0 S4 relay restart, decision 6, `docs/phase0/findings.md` |
-| Deterministic collision order by stable object IDs in Phase 1 | Rev 3; Phase 0 S1 repeatability, `docs/phase0/findings.md` |
+| Deterministic collision order by stable object IDs in Phase 1; sim RNG split from cosmetic RNG before golden tests | Rev 3; Phase 0 S1 repeatability and dependency map row 37, `docs/phase0/findings.md` |
 | Null-surface extraction with link-time MiniCore core/renderer split (Phase 2) | Rev 3; Phase 0 S1, decision 1, `docs/phase0/findings.md` |
 | Qt-for-WASM vs Qt-free core decided in the Phase 2 spec | Rev 3; Phase 0 S1/S2-B, decision 4, `docs/phase0/findings.md` |

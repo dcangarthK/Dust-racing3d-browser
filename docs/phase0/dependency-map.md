@@ -2,7 +2,7 @@
 
 ## Coupling graph
 
-Built from what S1 found on `spike/s1-headless` and checked against the upstream source on `main` (paths relative to `DustRacing2D/src/game/`). Solid arrows are compile-time or ownership dependencies; dotted arrows are Qt signal or link-time dependencies. Numbers in node labels are hack-log rows below.
+Built from what S1 found on `spike/s1-headless` and checked against the upstream source on `main` (paths relative to `DustRacing2D/src/game/`). Solid arrows are compile-time or ownership dependencies (the labelled `Collisions → Serial` edge is the S1 fix: the iteration sites call `serial()`); dotted arrows are Qt signal or link-time dependencies. Numbers in node labels are hack-log rows below.
 
 ```mermaid
 flowchart TD
@@ -16,7 +16,7 @@ flowchart TD
     MCWorld --> MCWorldRenderer --> MCGLScene
     MCWorld --> Collisions["MCObjectGrid / MCCollisionDetector / MCImpulseGenerator"]
     Collisions --> AddrOrder["std::set / map keyed by MCObject* (heap-address order)"]
-    Collisions -. sorted by serial, rows 40-42 .-> Serial
+    Collisions -->|sorted by serial, rows 40-42| Serial
     Race --> GameRef["Game & (constructor-injected, mode())"]
     Race --> Database["Database::instance(), QtSql (#28)"]
     Race -. Qt signals .-> QtCore
@@ -52,7 +52,7 @@ Rows 1-23 (Task 10): all paths are relative to `DustRacing2D/src/game/MiniCore/s
 |---|---|---|---|---|
 | 1 | Graphics/mcglobjectbase.hh:33, 225 | Base-class selection is `#if defined(__MC_QOPENGLFUNCTIONS__) && !defined(MC_HEADLESS)`: no `QOpenGLFunctions` base, no `<QOpenGLFunctions>` / `<QOpenGLVertexArrayObject>` includes, and `m_vao` is a plain `GLuint m_vao = 0` (the non-Qt branch) under headless | `QOpenGLFunctions` resolves GL entry points through a context; it must not be linked or constructed in a headless process | Split MiniCore into a GL-free core (geometry, physics, assets) and a GL renderer library selected at link time, instead of an `#ifdef` inside one class |
 | 2 | Graphics/mcglshaderprogram.hh:44 | Same base-class selection for `MCGLShaderProgram` (no `QOpenGLFunctions` base under headless) | Same as #1 | Same as #1 |
-| 3 | Graphics/mcglobjectbase.cc:36 | Constructor: `initializeOpenGLFunctions()` guarded with `!defined(MC_HEADLESS)`. The initializer-list lookups of `MCGLScene::instance().default*ShaderProgram()` are unchanged (see #14) | Needs a current GL context | As #1 |
+| 3 | Graphics/mcglobjectbase.cc:36 | Constructor: `initializeOpenGLFunctions()` guarded with `!defined(MC_HEADLESS)`. The initializer-list lookups of `MCGLScene::instance().default*ShaderProgram()` are unchanged (see #10) | Needs a current GL context | As #1 |
 | 4 | Graphics/mcglobjectbase.cc:65-141 | `bindVAO`, `releaseVAO` (empty), `createVAO` (returns `false`), `bindVBO`, `releaseVBO`, `createVBO` (empty), `render()` (no `glDrawArrays`) compiled out. `createVAO` returning `false` leaves `m_hasVao == false` | VAO/VBO management and the draw call are pure GL | Move buffer handling behind a renderer interface that the headless build never instantiates |
 | 5 | Graphics/mcglobjectbase.cc:243-255, 360-362 | `initBufferData` and `initUpdateBufferData`: only the `glBufferData` call guarded (`(void)drawType` under headless). `m_totalDataSize` / `m_bufferDataOffset` bookkeeping kept | Upload only; sizes are plain data | As #4 |
 | 6 | Graphics/mcglobjectbase.cc:376-378 | `addBufferSubData(4-arg)`: only `glBufferSubData` guarded; offset and per-attribute data-size bookkeeping kept | Upload only | As #4 |
@@ -82,7 +82,7 @@ Paths in rows 24-42 are relative to `DustRacing2D/src/game/` (so MiniCore rows s
 |---|---|---|---|---|
 | 24 | car.hpp:27, 81-83 | [accessor] Public `Steer steerDirection() const` and `const Gearbox & gearbox() const`; `#include "gearbox.hpp"` replaces the `class Gearbox;` forward declaration | The emitter needs steer and gear, which `Car` keeps private | Snapshot struct exported by the sim, with the analog steer value stored (today only the ±1 direction is kept; `control` is consumed in `Car::steer`) |
 | 25 | race.hpp:71-73, race.cpp:711-743 | [accessor] `float Race::routeFraction(size_t carIndex) const`: `(prevTargetNode + t) / nodeCount`, with `t` the car's projection onto the prev→current target-node segment, clamped to [0, 1]. Replaces the brief's `trackNodeCount()` accessor, which was therefore not added | Contract `progress` needs continuous route progress; `CarStatus` is private | Part of the sim snapshot struct. Note the last ~4 % of a lap is never reported: the lap ticks over when the car enters checkpoint 0's box (half-width 128 units), before `t` reaches 1 |
-| 26 | spikes/s1-headless/stub_game.cpp | [singleton] Replaces game.cpp. Defines only the constructor/destructor, `instance`, `mode`/`setMode`, `lapCount`/`setLapCount`, `hasTwoHumanPlayers` (false), `hasComputerPlayers` (true), `difficultyProfile` (Medium) | Race, Car, CarPhysicsComponent and TrackLoader reach `Game::instance()`; real game.cpp drags in renderer, input, audio, state machine | Inject a small `SimConfig` (difficulty, lap count, mode) into the sim instead of the `Game` singleton |
+| 26 | spikes/s1-headless/stub_game.cpp | [singleton] Replaces game.cpp. Defines only the constructor/destructor, `instance`, `mode`/`setMode`, `lapCount`/`setLapCount`, `hasTwoHumanPlayers` (false), `hasComputerPlayers` (true), `difficultyProfile` (Medium) | `Car`, `CarFactory` and `CarPhysicsComponent` call `Game::instance()` for `difficultyProfile()`, and `Race` calls `mode()` on its constructor-injected `Game &` (see the corrections above; `TrackLoader` does not use `Game`); real game.cpp drags in renderer, input, audio, state machine | Inject a small `SimConfig` (difficulty, lap count, mode) into the sim instead of the `Game` singleton |
 | 27 | spikes/s1-headless/stub_game.cpp | [singleton] No-op `Game::exitGame`, `Game::init`, `Game::togglePause` | Link errors: the moc metaobject for `Game` references every slot declared in game.hpp | Goes away with #26 |
 | 28 | spikes/s1-headless/stub_database.cpp | [singleton] Replaces database.cpp (QtSql): every load returns "no record", `loadTrackUnlockStatus` returns true, saves are no-ops. No destructor (database.hpp declares none) | Race and TrackLoader call `Database::instance()` for records and unlocks; QtSql must not be linked | Records become a service outside the sim, fed by `result` messages |
 | 29 | game.hpp:130-132 | [Qt] `Application m_app;` (a `QGuiApplication` subclass) wrapped in `#ifndef MC_HEADLESS` | `Game` owns the GUI application object. Constructing it loads the cocoa platform plugin and would clash with the harness's `QCoreApplication`; the stub cannot skip a member | Goes away with #26 |
