@@ -1,0 +1,8 @@
+{
+  "name": "s3-render",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.mjs", "dev": "vite", "build": "vite build" },
+  "dependencies": { "three": "0.176.0" },
+  "devDependencies": { "vite": "6.3.5" }
+}
