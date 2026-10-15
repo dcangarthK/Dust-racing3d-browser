@@ -1,0 +1,551 @@
+x.y.z
+=====
+
+New features:
+
+Bug fixes:
+
+* Fix GitHub Issue #141: The Pause Button is bugged
+
+* Fix GitHub Issue #144: 2.2.0 crashes on OpenBSD when cars start moving
+
+Other:
+
+2.2.0
+=====
+
+Bug fixes:
+
+* Fix too slow physics especially with VSYNC on
+
+Other:
+
+* DustRacing2D now requires Qt >= 6.4
+  - See https://github.com/juzzlin/DustRacing2D/issues/135
+
+2.1.1
+=====
+
+New features:
+
+* Add Turkish translations
+
+Bug fixes:
+
+* Fix GitHub Issue #117: Spelling Mistake in Track Editor
+* Fix build issues with -DQOpenGLFunctions=OFF
+
+Other:
+
+* Do not install app icons in pixmaps location
+* Add possibility to rely on system fonts
+* Drop the configure wrapper script
+
+2.1.0
+=====
+
+New features:
+
+* Add Dutch translation
+* Add new image for finish tile in editor
+* Roughly sort tracks by length/complexity/difficulty
+* Show how to unlock track
+
+Bug fixes:
+
+* Fix GitHub Issue #95: Time Trials don't work, dustrac just exits
+* Fix early finish on 3 tracks
+* Include <stdexcept> for std::runtime_error
+
+Other:
+
+* build fix for darwin and avoiding suprious deprecated warnings.
+* Award a half star for rank 11
+* Update new lap record in a thread to avoid stutter
+* Fix GitHub Issue #57: Replace QSettings with SQLite
+  - Store lap records to an SQLite database
+  - Store race records to an SQLite database
+  - Store best positions to an SQLite database
+  - Store track unlock to an SQList database
+
+2.0.5
+=====
+
+New features:
+
+* Show the actual car color in minimap
+
+Bug fixes:
+
+* Fix GitHub Issue #87: Improve off-track detection accuracy on curves
+* Fix GitHub Issue #83: Car dots in minimap are too small on very large tracks
+
+Other:
+
+* Editor: Write processing instruction
+* Add processing instructions to all existing tracks
+
+2.0.4
+=====
+
+Mostly a bug fix and code refactoring release.
+
+One new track Crossroads (by Wuzzy) added.
+
+New features:
+
+* Fix GitHub Issue #67: New track: Crossroads
+
+Bug fixes:
+
+* Fix GitHub Issue #59: Regression: Bridge is broken due to changes in collision detection
+* Fix GitHub Issue #72: Apostrophe character is broken
+  - The font is now initialized with the full ASCII table
+* Fix GitHub Issue #77: Pressing accelerate and brake at same time gives weird results
+* Fix GitHub Issue #76: Dirt particles appear even when not moving on grass
+* Fix GitHub Issue #66: Editor displays legacy track path on startup
+  - Effective only on Linux/Unix
+* Fix GitHub Issue #69: Cars teleport above and below bridges when driving horizontally in Radiator
+* Fix GitHub Issue #71: Confusing starting numbers in two player mode
+
+Other:
+
+* Fix GitHub Issue #74: Twister track has no pit stop
+* Skip bridge tiles when placing car into start grid
+* Require C++14
+
+2.0.3
+=====
+
+New features:
+
+* Fix GitHub Issue #49: Change custom track directory
+  - On Linux/Unix also `$XDG_DATA_HOME/DustRacing2D/tracks` is added to search paths,
+    or `$HOME/.local/share/DustRacing2D/tracks` if `$XDG_DATA_HOME` is not defined.
+* Fix GitHub Issue #53: Add a small delay before reverse engages
+
+Bug fixes:
+
+* Fix GitHub Issue #8: Confusing/weird stars
+* Fix GitHub Issue #5: Pit stop spam 
+  - Collision detection partly rewritten as a side effect
+* Fix GitHub Issue #48: Walls and grandstands are pushable
+
+Other:
+
+* Refactor sparkle effect due to changed collision event behavior
+* Use SimpleLogger instead of MCLogger
+  - Add --debug and --trace CLI options
+  - Throw on unknown arguments
+
+2.0.2
+=====
+
+New features:
+
+* Editor: Enable zooming with Ctrl+Wheel
+* Fix GitHub Issue #43: Add option to force screen on multi-display setups
+
+Bug fixes:
+
+* Fix GitHub issue #30: Add more slack to zFar
+* Fix GitHub Issue #40: cmake installs into /usr/local instead of /usr/local/bin
+* Fix GitHub Issue #41: libqt5opengl5-dev is also missing on Ubuntu 18.04
+* Editor: Fix mistake in argument parsing
+* Fix compiler options in CMakeLists.txt
+* CMake: Fix C++ standard setting
+* Fix GLES build: use explicitly GLES2/gl2.h
+* Fix linking to OpenGL libs on CMake < 3.11.0
+
+Other:
+
+* Improve AI braking points in Desert Storm
+* Hard-code zFar to 10000.0f
+* Editor: Remove edit->enlarge* because there's insert row/column
+* Add separate build scripts for Jenkins
+* Bump minimum required Qt version to 5.4.0
+* CMake: Default to GLVND, use the recommended way to link to GL
+
+2.0.1
+=====
+
+A bug fix release to fix build on Qt 5.6+
+
+Bug fixes:
+
+* Editor: use qSetGlobalQHashSeed with Qt 5.6+
+
+  qt_qhash_seed is no more exported in recent Qt 5.9.x versions, so use
+  the public functions for it available since Qt 5.6.
+
+Other:
+
+* Properly check for empty version in mxe-windows-build
+
+2.0.0
+=====
+
+This not a completely new game, but still so many fixes and changes that
+it deserves a major version bump.
+
+New features:
+
+* Animated game menus
+* Always select difficulty and lap count after selecting "Play"
+* "Cool down" laps for AI to prevent the destruction derby
+* Bridge object as a mesh
+* Font changed to DejaVu
+* FPS setting menu
+* Fully destructible tracks to make races more unpredictable
+* New intro image
+* New particle effects
+* New randomized tree objects
+* Editor: Add CLI option to force language
+* Editor: Add option to force object stationary
+* Editor: Lock qhash random seed so that XML output is not randomized
+
+Improvements:
+
+* Improved driving dynamics. It's now possible to do burnouts
+* Improved graphics and lighting
+* Improvements and additions to many tracks
+* Sound levels tuned
+
+Bug fixes:
+
+* Fix GitHub issue #26: Undo resets tile rotations
+* Fix GitHub issue #24: Change the game font to DejaVu
+* Fix qmake build
+* Fix some particle life times
+* Fix some compiler warnings
+* Fix shader deletion issues reported by Valgrind
+* Fix clang build which attributes wrongly std=c++11 into C compiler flags
+* Fix build with GLEW and QOpenGLFunctions=OFF
+* Fix CMake dev build
+* Editor: Fix object add on target nodes and other objects
+* Editor: Fix the behavior of right-click
+* Editor: Fix undo erasing computer hints
+* Editor: Fix undo on target node resize and object rotation
+
+Other:
+
+* Translation updates
+* Lots of code refactored
+
+1.13.0
+======
+
+New features:
+
+* Implement a minimap
+* Editor: Implement universal undo stack
+* Editor: Add option to insert row/col before or after
+
+Bug fixes:
+
+* Fix GitHub issue #9: Editor segfaults when undoing a change on the last row/column which got deleted before
+* Fix GitHub issue #19: Crash on exit on FreeBSD
+* Fix a potential crash on settings loading
+
+Other:
+
+* Lots of code refactored
+
+1.12.0
+======
+
+New features:
+
+* 7 new tracks by Wuzzy <almikes@aol.com>
+* Add German translation
+
+Improvements:
+
+* Make the steering more stable
+* Redo startlight graphics in SVG
+* Improve log messages about translations.
+* Editor: Improve override cursor logic.
+* Editor: Remove dead code.
+* Update Czech translations.
+
+Bug fixes:
+
+* Fix GitHub issue #7: Bad track preview images.
+* Fix GitHub issue #6: Assertion failure when empty route cleared.
+* Remove lower bridge rails for now.
+
+Other:
+
+* CMake: Switch to the recommended way to link Qt5
+
+1.11.0
+======
+
+New features:
+
+* Finally a difficulty setting with three levels: Easy, Medium and Senna
+* Show a red overlay on hard crashes
+* Cars can get damaged
+
+Improvements:
+
+* Remove alpha blending from the plant object
+* Stabilize the steering a bit
+
+Bug fixes:
+
+* Editor: Fix wrong scale when track given as a CLI argument
+* Editor: Don't try to open a track if filename is empty
+* Fix unit tests
+
+Other:
+
+* Refactor settingsmenu.hpp
+* Refactor steering logic
+* Sparkles as surface particles
+* Use same renderer for all particle batches
+
+1.10.0
+======
+
+In this release multiple issues with shadow rendering are fixed.
+Particle rendering is completely reworked and also the track editor
+is given some love. Issues with depth testing are fixed. A lot of
+bug fixes and miscellaneous improvements and changes.
+
+New features:
+
+* Add a chicane to straight.trk and make it shorter
+* Instantly change the virtual resolution between fullscreen modes
+* Longer start grid to Suzuka
+* Make it possible to spin
+* Show lap time in message area
+* Simple specular effect for the cars
+* Take more car colors in to use
+* Editor: Different colors for brake and brake hard
+* Editor: Implement row and col deletion
+* Editor: Implement row and column insertion
+
+Improvements:
+
+* Enable depth test for smoke
+* Implement batching and shadows for MCSurfaceParticles
+* Make timing based on frames instead of QTime
+* Mud particles as surface particles
+* No leaf particle when colliding with plants
+* Reduce quadratic drag
+* Refactor particle rendering
+* Rename textures.conf => surfaces.conf
+* Render rect particles as quads if not GLES
+* Render shadows with depth information
+* Set z-offsets for car surfaces
+* Smaller tree swing amplitude
+* Use GLSL's reflect()
+* Editor: Fit track properly when loading a track
+* Editor: Improve some tile graphics
+* Editor: Replace private slots with lambdas in EditorView
+* Editor: Replace some if's with asserts
+* Editor: Use C++11's override specifier
+
+Bug fixes:
+
+* Fix a bug where mouse release outside pressed item caused two items being focused
+* Fix build with qmake
+* Fix cppcheck warnings
+* Fix depth buffering
+* Fix exception handling
+* Fix specular lighting of the tire object
+
+Other:
+
+* Add optional z attribute to MCSurface / surface config loader
+* Add mcvector2d.hh and mcvector3d.hh to CMakeLists.txt
+* Add option to filter layers to be rendered
+* C++11 way to disable copy ctor's
+* Common base class for all particle renderers
+* Divide layers into render and collision layers
+* Lambda slots for show/hide cursor
+* Lambda slot for the update timer
+* More sane use of casts
+* Move MCGLScene to MCWorldRenderer
+* New-style signal connections in Game
+* Refactor bridge creation
+* Refactor Config
+* Refactor child velocity logic
+* Refactor MCSurfaceConfigLoader
+* Remove obsolete images
+* Remove render layers from cars' sub-objects
+* Replace MCException with std::runtime_error
+* Use add_compile_options() instead of appending CMAKE_CXX_FLAGS
+* Use C++11's move semantics in MCBBox and MCBBox3d
+* Use C++11's move semantics in MCVector2d and MCVector3d
+
+1.9.2
+=====
+
+Bug fixes:
+
+* Fix rendering of the windowed mode.
+* Fix rendering in other than native resolutions.
+
+Improvements:
+
+* Take maximum supported texture size into account.
+* QGLFramebufferObject => QOpenGLFramebufferObject.
+* Add camera location support to MCGLShaderProgram.
+* Simplify FBO shading.
+* CMake: Check for polices before setting.
+* Fix some MSVC compilation warnings.
+* Improve documentaton in mcglscene.hh
+* Add getters for eyeZ and viewAngle.
+
+1.9.1
+=====
+
+New features:
+
+* Rotating leaf particles
+* Show game version in the intro screen.
+
+Improvements:
+
+* Set VSync default to 'ON'.
+* Force QSettings to .INI-format on Windows.
+* Make the code compile with MS Visual C++ 2013.
+* Improved tile graphics
+* Re-license artwork under CC BY-SA
+* Switch to the new QSurface-based graphics stack
+* Engine improvements
+
+Bug fixes:
+
+* Fix broken OpenGL scene size on virtual desktops.
+* Fix multiple bridge issues
+* Fix crash when quitting
+* Fix rendering of two-player game
+
+1.8.3
+=====
+
+Bug fixes:
+
+* Fix some physics issues
+
+1.8.2
+=====
+
+New features:
+
+* New race track suzuka.trk
+
+Improvements:
+
+* Physics improvements
+  - More stable and agile car handling
+  - Lighter tire object
+
+Bug fixes:
+
+* Fix multiple bugs in the bridge component
+* Fix compilation with Clang
+
+1.8.1
+=====
+
+Improvements:
+
+* Tune car parameters
+
+Other:
+
+* Drop support for Qt4
+
+1.8.0
+=====
+
+New features:
+
+* More realistic and dynamic car physics for funnier gameplay.
+* Rewritten bridge object that now actually even works
+* Some graphics improvements (they are still shitty, though)
+  - Transparent shadows
+  - Two-player game views separated by a narrow line
+  - Filtering added to some textures
+  - Some car graphics improved
+* Driving off-track is now more merciful
+
+Bug fixes:
+
+* Fix installing the game when not built in the source root. Patch by Rémi Verschelde.
+* Enhancement of the desktop files. Patch by Rémi Verschelde.
+* Fix bridge
+
+Other:
+
+* Improve target zones of ring.trk
+
+1.7.3
+=====
+
+Maintenance release:
+
+* Revert "Optimize VBO, VAO and texture binding."
+  - Caused missing number plate of the first car
+* Fix MCObject::addTorque()
+* Remove linear and angular velocity limits.
+* Add support for positional force.
+* Fix build with GL30=ON.
+* Enable build on FreeBSD.
+
+1.7.2
+=====
+
+New features
+
+* French translations
+
+Bug fixes:
+
+* Fix computer driving lines in twister.trk
+
+1.7.1
+=====
+
+Bug fixes:
+
+* Add missing bridge model for editor.
+
+1.7.0
+=====
+
+New features:
+
+* twister.trk
+* Bridge object.
+* Fade out flash transition.
+* Turn left and turn right signs.
+* CLI option to force vsync off.
+* New crash sound.
+* Editor: visualize computer hints.
+* Move user tracks to the beginning of the track array.
+* Increase the initial slide friction to 1.0
+
+Bug fixes:
+
+* Don't show prev/next if on first/last item.
+* Remove specular shaders from crate and tire.
+* Fix computer driving line in curvastone.trk
+* Fix off-track detection on 'sand grass straight' tile.
+
+Other:
+
+* Small improvements to render timing.
+* Optimize VBO, VAO and texture binding.
+* Optimize viewport switching.
+* Optimize the use of GL_DEPTH_TEST.
+* Use random functionality from C++11.
+* Improve sky reflection.
+* Update scripts/genericLinuxBuildQt5
+
+-- Jussi Lind <jussi.lind@iki.fi>
+

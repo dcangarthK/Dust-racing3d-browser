@@ -1,0 +1,175 @@
+Build & install instructions
+============================
+
+These are build & install instructions for Dust Racing 2D.
+
+Source code
+===========
+
+The source tree includes source code for the track editor and the game itself.
+
+The code is "documented" with Doxygen tags.
+
+The source tree layout:
+
+    src/game/          : Source files for the game.
+    src/game/MiniCore/ : Graphics and physics engine.
+    src/game/MTFH/     : Menu Toolkit From Hell.
+    src/game/STFH/     : Sound Toolkit From Hell.
+    src/editor/        : Source files for the track editor.
+    src/common/        : Shared files between the editor and the game.
+    src/images/        : Some SVG-images used as the source for final images.
+
+Data directory structure:
+
+    data/              : Data mapping and configuration files.
+    data/fonts/        : Font used by the game.
+    data/icons/        : Icon files for game and editor.
+    data/images/       : Image files and textures loaded by the game.
+    data/levels/       : Level data.
+    data/models/       : 3D models.
+    data/sounds/       : Sound files.
+    data/translations/ : Released Qt translation files.
+
+Other:
+
+    packaging/windows/ : NSIS packaging for Windows.
+
+Build systems
+=============
+
+The "official" build system for Linux is CMake.
+
+Toolchains
+==========
+
+GCC/MinGW and Clang are the only "officially" supported toolchains on Linux.
+
+Windows builds are done in a Docker container with MXE (http://mxe.cc). The build script
+also generates automatically an NSIS Windows installer and a ZIP-archive.
+
+See scripts/build-windows-nsis and scripts/build-windows-nsis-packaging-helper.
+
+Building the project with Microsoft Visual C++ also works, but no automatic
+packaging/deployment currently exist. The runtime files (data/, Qt, OpenAL..) must be
+manually copied in place. See more detailed instructions below.
+
+Build dependencies
+==================
+
+Currently the build depends on Qt, libopenal and libvorbisfile.
+On Linux pkg-config is required.
+
+Building in the command line on Linux (tested on Ubuntu 24.04 LTS)
+==================================================================
+
+Development build (the game can be run without installing anything):
+-------------------------------------------------------------------
+
+1) Install Qt6 (>= 6.4) development files and other build tools:
+
+`$ sudo apt install build-essential cmake pkg-config libqt6uitools6 linguist-qt6 qt6-base-dev qt6-l10n-tools qt6-tools-dev-tools qt6-tools-private-dev libopenal-dev libvorbis-dev`
+
+  (Qt packaging might change between Ubuntu releases)
+
+2) Go to the source directory and run:
+
+`$ mkdir build && cd build`
+
+`$ cmake ..`
+
+`$ make`
+
+This will build the editor and the game binaries.
+
+Run the game:
+
+`$ ./dustrac-game`
+
+Optionally run the track editor:
+
+`$ ./dustrac-editor`
+
+Run unit tests:
+
+`$ ctest`
+
+Release build (in this example game installs under /usr):
+--------------------------------------------------------
+
+`$ mkdir build && cd build`
+
+`$ cmake .. -DReleaseBuild=ON -DCMAKE_INSTALL_PREFIX=/usr`
+
+`$ make`
+
+This will build the editor and the game binaries.
+
+Install the binaries and data files:
+
+`$ sudo make install`
+
+This installs also the desktop files so Dust Racing 2D
+should appear in your application menu.
+
+Cross-compiling for Windows in Docker with MXE on Linux
+=======================================================
+
+1) Install Docker
+
+2) `$ ./scripts/build-windows-installer`
+
+CPack
+=====
+
+Dust Racing 2D has a support for CPack. It's not complete, but can be used to generate
+e.g. Debian packages.
+
+After a successful build with ReleaseBuild=ON run CPack:
+
+`$ cpack -G DEB`
+
+This will generate a Debian package.
+
+Building with Microsoft Visual C++ (OUTDATED)
+=============================================
+
+The project has been successfully compiled and executed with MSVC with the following setup:
+
+* Windows 8.1 Pro
+* Windows SDK for Windows 8.1
+* CMake 3.0
+* Qt 5.3 32-bit SDK for MSVC
+* MS Visual Studio 2013 for Desktop Windows
+
+1) Download and build Vorbis libraries and OpenAL Soft with the same toolchain
+
+2) Open the top-level CMakeLists.txt in Qt Creator, configure and build
+
+3) Copy the runtime files, like OpenAL DLL, to the same directory with the game binary
+
+Jenkins CI
+==========
+
+Jenkinsfile includes pipelines configuration for Jenkins CI.
+
+For packagers
+=============
+
+The binaries only need to find the data dir that includes
+all the runtime data. This can be set in the main CMakeLists.txt
+and is given to the game via -DDATA_PATH.
+
+The release build should be used when packaging (give
+-DReleaseBuild=ON to cmake).
+
+Currently the data files install to CMAKE_INSTALL_PREFIX/share/DustRacing
+and the binaries install to CMAKE_INSTALL_PREFIX/bin.
+
+Among the data files there are also fonts that are installed by default;
+in case they are available in the system, it is possible to not ship
+any font by giving -DSystemFonts=ON to cmake.
+
+CMAKE_INSTALL_PREFIX usually defaults to /usr/local and
+can be changed by giving, for example, -DCMAKE_INSTALL_PREFIX=/usr to cmake.
+

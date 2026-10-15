@@ -1,0 +1,25 @@
+// This is just wrapper header for glew.
+#ifndef __MC_NO_GLEW__
+  #include "contrib/glew/glew.h"
+#else
+  #ifndef __MC_GLES__
+    #ifdef _MSC_VER
+      #include <windows.h>
+      #include <wingdi.h>
+      #include <GL/gl.h>
+    #else
+      #ifdef __APPLE__
+        #define GL_SILENCE_DEPRECATION
+        #define GL_GLEXT_PROTOTYPES
+        #include <OpenGL/gl.h>
+        #include <OpenGL/glext.h>
+      #else
+        #define GL_GLEXT_PROTOTYPES
+        #include <GL/gl.h>
+        #include <GL/glext.h>
+      #endif
+    #endif
+  #else
+    #include <GLES2/gl2.h>
+  #endif
+#endif

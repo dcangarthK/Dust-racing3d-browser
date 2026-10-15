@@ -1,0 +1,163 @@
+Contribution "instructions"
+===========================
+
+All kinds of contributions are welcome: bug fixes, graphics, new tracks, translations..
+
+E-mail: jussi.lind@iki.fi
+
+Getting the up-to-date source
+-----------------------------
+
+git clone https://github.com/juzzlin/DustRacing2D.git
+
+- master branch has the currently released stuff and is stable.
+
+Game / Editor
+-------------
+
+Make your changes against the master branch.
+
+If you have fixed a bug or modified the game in some other acceptable way,
+I most likely want to receive the changes as a GitHub pull request
+
+OR
+
+as a Git patch (make a commit of your changes in your working branch,
+and then make a patch "git diff master > your_change.patch").
+
+Please follow the existing coding style. Some examples and conventions below.
+
+Adding/updating translations
+----------------------------
+
+Qt's translation source files for the game are at:
+
+src/game/translations/
+
+Editor:
+
+src/editor/translations/
+
+You can just copy these files as a new locale and edit, but the recommended way is
+to generate/update the file from source code to make sure that the source strings
+are up-to-date:
+
+$ lupdate src/game/*.cpp src/game/menu/*.cpp -ts  src/game/translations/dustrac-game_fr.ts
+$ lupdate src/editor/*.cpp -ts  src/editor/translations/dustrac-editor_fr.ts
+
+..as an example for French.
+
+The .ts-files can then be opened in Qt's translation GUI, linguist.
+
+For Qt5, the Ubuntu package for these tools is qttools5-dev-tools.
+
+A fallback character mapping is in src/game/graphicsfactory, as the texture font used in the
+game doesn't support all accented characters, e.g. "á" is mapped to "a". This map can also
+be extended, if needed.
+
+In the case of a new locale, src/game/CMakeLists.txt and src/editor/CMakeLists.txt
+need to be modified so that the .ts files are compiled into corresponding .qm files.
+The .qm files are binary files that are actually used by the application:
+
+  # Translation files in src/game/translations (without .ts)
+  set(TS dustrac-game_fi dustrac-game_it dustrac-game_cs)
+
+Add your file to the list for both the game and the editor.
+
+Remember to TEST the translations. The editor and the game can be forced to given lang:
+
+$ ./dustrac-game --lang fr
+$ ./dustrac-editor --lang fr
+
+Coding style examples
+---------------------
+
+Some conventions:
+
+* Avoid useless comments and temp variables
+* C++11 standard
+* camelCase naming convention for members
+* Indentation with 4 spaces
+* No copy-paste code
+* No public/protected member variables allowed, only private variables with getters/setters
+* PascalCase naming convention for class names, namespaces, and enums
+* Prefer references and smart pointers
+* Typedef STL containers and smart pointers
+* Use const always when possible
+
+Class header example:
+
+#ifndef MYFOOCLASS_HPP
+#define MYFOOCLASS_HPP
+
+class MyFooClass : public MyBase
+{
+public:
+
+    enum class MyEnum
+    {
+        This,
+        That
+    };
+
+    MyFooClass();
+
+    virtual ~MyFooClass();
+
+    bool someMember() const;
+
+    void setSomeMember(bool someMember);
+
+protected:
+
+    void myMethod1();
+
+private:
+
+    void myMethod2();
+
+    bool m_someMember;
+
+    int * m_somePointer;
+};
+
+typedef std::shared_ptr<MyFooClass> MyFooClassPtr;
+
+#endif // MYFOOCLASS_HPP
+
+Class source example:
+
+#include "myfooclass.hpp"
+
+namespace {
+static const int MAX_CARS = 10;
+}
+
+MyFooClass::MyFooClass()
+    : m_someMember(false)
+    , m_somePointer(nullptr)
+{
+    if (something())
+    {
+        for (int i = 0; i < MAX_CARS; i++)
+        {
+            doSomething(i);
+        }
+    }
+}
+
+bool MyFooClass::someMember() const
+{
+    return m_someMember;
+}
+
+void setSomeMember(bool someMember)
+{
+    m_someMember = someMember;
+}
+
+MyFooClass::~MyFooClass()
+{
+}
+
+-- Jussi Lind <jussi.lind@iki.fi>
