@@ -1,7 +1,7 @@
 # DustRacing2D Upgrade — Scope & Phased Plan
 
 **Date:** 2026-10-15 (rev 3)
-**Status:** Architecture approved (hybrid, three.js). Phase 0 complete (`docs/phase0/findings.md`), all exit criteria met. Phase 1 not yet specified.
+**Status:** Architecture approved (hybrid, three.js). Phase 0 complete (`docs/phase0/findings.md`), all exit criteria met. Phase 1 specified in `2026-10-15-phase1-sim-stabilization-design.md`.
 **Codebase:** `DustRacing2D/` (v2.2.0, upstream juzzlin/DustRacing2D)
 **Reviews folded in:** two Codex assessments (architecture take; critique of rev 1); Phase 0 findings (`docs/phase0/findings.md`, rev 3). See §12 Decision log.
 
@@ -218,13 +218,14 @@ Spikes. Their code is throwaway; only the answers are kept.
 
 ### Phase 2 — Headless extraction
 - `libdustsim`, using the null-surface approach chosen in S1: MiniCore split at link time into a GL-free core and a renderer library, not a `SimObject`/`RenderObject` split.
-- Sim build flags: `-ffp-contract=off`, no `-ffast-math`/`-Ofast`, on every translation unit that feeds the simulation (§5.2).
+- Sim build flags: `-ffp-contract=off`, no `-ffast-math`/`-Ofast`, on every translation unit that feeds the simulation (§5.2). Phase 1 already applies them to MiniCore and the game's sim sources, so its golden fixtures stay valid.
 - Qt boundary for WASM decided in the Phase 2 spec: Qt for WebAssembly (Core, Xml, Gui) vs a Qt-free core fed by the track pipeline's JSON. S1 still needs QtGui for `QImage` surface decode; S2-B's costs (about 0.5-1 day vs 3-5 agent-days to replace Qt) are estimates.
 - Qt signals replaced by an event queue; global singleton state contained.
 - `dustsim-headless` CLI → NDJSON telemetry per §5.4.
 - Timing model: sectors and mini-sectors from route nodes, time-at-position gaps, speed traps, analog steering stored, purple/green bests.
 - Track pipeline v1: `.trk` → versioned JSON.
 - Desktop game moved onto the library through a regression adapter.
+- Apply the Phase 0 decision-6 amendments to `contracts/telemetry-v0` together with the emitter (Phase 1 defines their sim-side semantics in `docs/phase1/sim-contracts.md`).
 
 **Done when:** the headless CLI produces a full timing feed, the golden tests pass on both headless and desktop, and CI is green.
 
@@ -314,7 +315,7 @@ flowchart LR
 
 ## 11. Next Step
 
-Phase 0 is done. Brainstorm **Phase 1** (sim stabilization) into its own spec, starting from `docs/phase0/findings.md` (decisions and open items).
+Phase 1 is specified in `2026-10-15-phase1-sim-stabilization-design.md`. Next: its implementation plan.
 
 ---
 
@@ -340,3 +341,4 @@ Phase 0 is done. Brainstorm **Phase 1** (sim stabilization) into its own spec, s
 | Deterministic collision order by stable object IDs in Phase 1; sim RNG split from cosmetic RNG before golden tests | Rev 3; Phase 0 S1 repeatability and dependency map row 37, `docs/phase0/findings.md` |
 | Null-surface extraction with link-time MiniCore core/renderer split (Phase 2) | Rev 3; Phase 0 S1, decision 1, `docs/phase0/findings.md` |
 | Qt-for-WASM vs Qt-free core decided in the Phase 2 spec | Rev 3; Phase 0 S1/S2-B, decision 4, `docs/phase0/findings.md` |
+| Phase 1 brings forward `-ffp-contract=off` on sim sources, the `MC_HEADLESS` guards (S1 rows 1–23, for a GL-free test harness) and a shared `RaceSetup`; telemetry v0 amendments go to Phase 2 with the emitter | Phase 1 spec, `2026-10-15-phase1-sim-stabilization-design.md` |
