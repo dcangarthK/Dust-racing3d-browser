@@ -9,6 +9,19 @@ const LAP_M = 1000;
 const RADIUS = LAP_M / (2 * Math.PI);
 const CENTER = { x: 400, y: 300 };
 
+/** Finish order: earlier finishedTick first, ties broken by car id. */
+const byFinish = (a, b) => a.finishedTick - b.finishedTick || a.id - b.id;
+
+/**
+ * Running order. Finished cars rank ahead of all unfinished cars, in finish order and
+ * frozen there. Unfinished cars follow, sorted by distance travelled.
+ */
+function rankOrder(field) {
+  const done = field.filter((c) => c.finishedTick !== null).sort(byFinish);
+  const running = field.filter((c) => c.finishedTick === null).sort((a, b) => b.dist - a.dist);
+  return [...done, ...running].map((c) => c.id);
+}
+
 export function generateRace({ cars, laps, seed, hz }) {
   const rand = mulberry32(seed);
   const sessionId = randomUUID();
@@ -34,6 +47,9 @@ export function generateRace({ cars, laps, seed, hz }) {
 
   event(0, 'lightsOut');
   for (let tick = 1; field.some((c) => c.finishedTick === null); tick++) {
+    // Lap/finish events are buffered so positionChange for this tick can go out first:
+    // a car's positionChange must never follow its own finish event.
+    const pending = [];
     for (const c of field) {
       if (c.finishedTick !== null) continue;
       c.dist += c.speed * (TICK_MS / 1000);
@@ -43,26 +59,29 @@ export function generateRace({ cars, laps, seed, hz }) {
         c.bestLapMs = c.bestLapMs === null ? lapMs : Math.min(c.bestLapMs, lapMs);
         c.lap = lapNow;
         c.lastLapTick = tick;
-        event(tick, 'lap', c.id, { lap: c.lap, lapMs });
+        pending.push(['lap', c, { lap: c.lap, lapMs }]);
         if (c.lap >= laps) {
           c.finishedTick = tick;
-          event(tick, 'finish', c.id, {});
+          pending.push(['finish', c, {}]);
         }
       }
     }
-    const newOrder = [...field].sort((a, b) => b.dist - a.dist).map((c) => c.id);
+    const newOrder = rankOrder(field);
     newOrder.forEach((id, i) => {
       if (order[i] !== id) event(tick, 'positionChange', id, { pos: i + 1 });
     });
     order = newOrder;
+    for (const [eventType, c, data] of pending) event(tick, eventType, c.id, data);
 
+    const allDone = field.every((c) => c.finishedTick !== null);
     const bucket = periodMs > 0 ? Math.floor((tick * TICK_MS) / periodMs) : tick;
-    if (bucket !== lastBucket) {
+    // The final tick always gets a snapshot so the last snapshot carries phase 'finished'.
+    if (bucket !== lastBucket || allDone) {
       lastBucket = bucket;
       out.push({
         type: 'snapshot',
         ...common(tick),
-        phase: field.every((c) => c.finishedTick !== null) ? 'finished' : 'racing',
+        phase: allDone ? 'finished' : 'racing',
         cars: field.map((c) => {
           const lapFrac = (((c.dist % LAP_M) + LAP_M) % LAP_M) / LAP_M;
           const theta = lapFrac * 2 * Math.PI;
@@ -88,7 +107,7 @@ export function generateRace({ cars, laps, seed, hz }) {
     }
   }
   const lastTick = out.at(-1).tick;
-  const classified = [...field].sort((a, b) => a.finishedTick - b.finishedTick);
+  const classified = [...field].sort(byFinish);
   out.push({
     type: 'result',
     ...common(lastTick),
