@@ -335,7 +335,7 @@ Approve the phase plan, then brainstorm **Phase 0** (toolchain + spikes S1–S4)
 | Emscripten determinism spike instead of a Qt-WASM spike | Rev 2 |
 | Tick length fixed at 16 ms (§5.1) | Rev 3; Phase 0 decision 2, `docs/phase0/findings.md` |
 | Exact native/WASM equality with `-ffp-contract=off` replaces tolerance-first contract; tolerances become a short-session fallback (§5.2, §8, risk 2, Phase 2 build flags) | Rev 3; Phase 0 S2, decision 3, `docs/phase0/findings.md` |
-| Producers retain history and re-send after a gateway restart (§5.4) | Rev 3; Phase 0 S4/S5, decision 6, `docs/phase0/findings.md` |
+| Producers retain history and re-send after a gateway restart (§5.4); late joiners without `from` already get logged events plus the latest snapshot, so no change there | Rev 3; Phase 0 S4 relay restart, decision 6, `docs/phase0/findings.md` |
 | Deterministic collision order by stable object IDs in Phase 1 | Rev 3; Phase 0 S1 repeatability, `docs/phase0/findings.md` |
 | Null-surface extraction with link-time MiniCore core/renderer split (Phase 2) | Rev 3; Phase 0 S1, decision 1, `docs/phase0/findings.md` |
 | Qt-for-WASM vs Qt-free core decided in the Phase 2 spec | Rev 3; Phase 0 S1/S2-B, decision 4, `docs/phase0/findings.md` |
