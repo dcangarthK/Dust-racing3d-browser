@@ -1,7 +1,7 @@
 # DustRacing2D Upgrade — Scope & Phased Plan
 
 **Date:** 2026-10-15 (rev 3)
-**Status:** Architecture approved (hybrid, three.js). Phase 0 complete (`docs/phase0/findings.md`) except exit criterion 6, the user watching the S5 demo, which is pending. Phase 1 not yet specified.
+**Status:** Architecture approved (hybrid, three.js). Phase 0 complete (`docs/phase0/findings.md`), all exit criteria met. Phase 1 not yet specified.
 **Codebase:** `DustRacing2D/` (v2.2.0, upstream juzzlin/DustRacing2D)
 **Reviews folded in:** two Codex assessments (architecture take; critique of rev 1); Phase 0 findings (`docs/phase0/findings.md`, rev 3). See §12 Decision log.
 
@@ -314,7 +314,7 @@ flowchart LR
 
 ## 11. Next Step
 
-Phase 0 is done (pending the user's S5 demo check). Brainstorm **Phase 1** (sim stabilization) into its own spec, starting from `docs/phase0/findings.md` (decisions and open items).
+Phase 0 is done. Brainstorm **Phase 1** (sim stabilization) into its own spec, starting from `docs/phase0/findings.md` (decisions and open items).
 
 ---
 
