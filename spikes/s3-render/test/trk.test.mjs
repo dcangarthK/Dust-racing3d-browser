@@ -66,3 +66,33 @@ test('parses real Monza: 35x19, 665 tiles, has route', () => {
   assert.equal(t.objects.length, 606);
   assert.equal(t.objects[0].role, 'tree');
 });
+
+test('throws when the tile count does not match cols*rows', () => {
+  const missing = MINI.replace('<t i="0" j="0" o="0" t="grass"/>', '');
+  assert.throws(() => parseTrk(missing), /expected 4 tiles, found 3/);
+});
+
+test('throws on a tile outside the cols/rows grid', () => {
+  assert.throws(() => parseTrk(MINI.replace('<t i="1" j="0"', '<t i="5" j="0"')), /trk: tile \(5,0\) out of range/);
+});
+
+test('throws on a non-numeric tile index', () => {
+  assert.throws(() => parseTrk(MINI.replace('<t i="0" j="0"', '<t i="" j="0"')), /invalid numeric "i"/);
+});
+
+test('throws on a non-numeric object orientation', () => {
+  assert.throws(() => parseTrk(MINI.replace('o="45"', 'o="abc"')), /invalid numeric "o"/);
+});
+
+test('throws on empty or non-numeric node width', () => {
+  assert.throws(() => parseTrk(MINI.replace('w="256" x="384"', 'w="" x="384"')), /invalid numeric "w"/);
+  assert.throws(() => parseTrk(MINI.replace('w="256" x="384"', 'w="x" x="384"')), /invalid numeric "w"/);
+});
+
+test('absent optional object orientation and node w/h default to 0', () => {
+  const bare = MINI.replace(' o="45"', '').replace(' w="256"', '').replace(' h="256"', '');
+  const t = parseTrk(bare);
+  assert.equal(t.objects[0].o, 0);
+  assert.equal(t.nodes[0].w, 0);
+  assert.equal(t.nodes[0].h, 0);
+});

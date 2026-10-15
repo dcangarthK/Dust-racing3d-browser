@@ -10,9 +10,16 @@ function attrs(tag) {
 }
 
 function num(a, key, where) {
-  const v = Number(a[key]);
-  if (!Number.isFinite(v)) throw new Error(`trk: ${where} missing numeric "${key}"`);
+  const raw = a[key];
+  if (raw === undefined) throw new Error(`trk: ${where} missing numeric "${key}"`);
+  const v = raw.trim() === '' ? NaN : Number(raw);
+  if (!Number.isFinite(v)) throw new Error(`trk: ${where} invalid numeric "${key}"`);
   return v;
+}
+
+// Optional attribute: absent means fallback; present must be a finite number.
+function optNum(a, key, where, fallback) {
+  return a[key] === undefined ? fallback : num(a, key, where);
 }
 
 export function parseTrk(xmlText) {
@@ -26,14 +33,18 @@ export function parseTrk(xmlText) {
     const a = attrs(m[0]);
     return { i: num(a, 'i', 'tile'), j: num(a, 'j', 'tile'), o: num(a, 'o', 'tile'), type: a.t ?? 'unknown' };
   });
+  if (tiles.length !== cols * rows) throw new Error(`trk: expected ${cols * rows} tiles, found ${tiles.length}`);
+  for (const t of tiles) {
+    if (!(t.i >= 0 && t.i < cols && t.j >= 0 && t.j < rows)) throw new Error(`trk: tile (${t.i},${t.j}) out of range`);
+  }
   const objects = [...xmlText.matchAll(/<o\b[^>]*\/>/g)].map((m) => {
     const a = attrs(m[0]);
-    return { role: a.r ?? a.role ?? 'unknown', x: num(a, 'x', 'object'), y: num(a, 'y', 'object'), o: Number(a.o ?? 0) };
+    return { role: a.r ?? a.role ?? 'unknown', x: num(a, 'x', 'object'), y: num(a, 'y', 'object'), o: optNum(a, 'o', 'object', 0) };
   });
   const nodes = [...xmlText.matchAll(/<n\b[^>]*\/>/g)]
     .map((m) => {
       const a = attrs(m[0]);
-      return { index: num(a, 'i', 'node'), x: num(a, 'x', 'node'), y: num(a, 'y', 'node'), w: Number(a.w ?? 0), h: Number(a.h ?? 0) };
+      return { index: num(a, 'i', 'node'), x: num(a, 'x', 'node'), y: num(a, 'y', 'node'), w: optNum(a, 'w', 'node', 0), h: optNum(a, 'h', 'node', 0) };
     })
     .sort((a, b) => a.index - b.index);
   if (nodes.length === 0) throw new Error('trk: no route nodes');
