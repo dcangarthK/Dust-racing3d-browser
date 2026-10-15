@@ -14,11 +14,14 @@ export class GapTracker {
   }
 
   record(carId, distance, tMs) {
+    // Ignore non-finite samples and backward distances: gapMs relies on distance being sorted.
+    if (!Number.isFinite(distance) || !Number.isFinite(tMs)) return;
     let b = this.buffers.get(carId);
     if (!b) {
       b = { d: new Float64Array(this.capacity), t: new Float64Array(this.capacity), start: 0, size: 0 };
       this.buffers.set(carId, b);
     }
+    if (b.size > 0 && distance < this.#at(b, b.size - 1)[0]) return;
     const idx = (b.start + b.size) % this.capacity;
     b.d[idx] = distance;
     b.t[idx] = tMs;
@@ -36,6 +39,7 @@ export class GapTracker {
     const ahead = this.buffers.get(aheadId);
     if (!behind?.size || !ahead?.size) return null;
     const [dNow, tNow] = this.#at(behind, behind.size - 1);
+    if (!Number.isFinite(dNow)) return null;
     const [dFirst] = this.#at(ahead, 0);
     const [dLast] = this.#at(ahead, ahead.size - 1);
     if (dNow > dLast || dNow < dFirst) return null;
@@ -47,9 +51,11 @@ export class GapTracker {
       else hi = mid;
     }
     const [d1, t1] = this.#at(ahead, lo);
-    if (lo === 0 || d1 === dNow) return tNow - t1;
-    const [d0, t0] = this.#at(ahead, lo - 1);
-    const tCross = t0 + ((dNow - d0) / (d1 - d0)) * (t1 - t0);
+    let tCross = t1;
+    if (lo > 0 && d1 !== dNow) {
+      const [d0, t0] = this.#at(ahead, lo - 1);
+      tCross = t0 + ((dNow - d0) / (d1 - d0)) * (t1 - t0);
+    }
     const gap = tNow - tCross;
     return gap >= 0 ? gap : null;
   }
