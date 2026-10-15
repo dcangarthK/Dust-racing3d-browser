@@ -1,0 +1,15 @@
+S4 backpressure. Temporary console.log counter in SessionHub.ingest on the snapshot-skip branch
+(highWaterBytes = 256 KiB); removed after the runs (git diff on lib/hub.mjs is empty).
+Slow consumer = browser console snippet from the brief (busy-wait in ws.onmessage), second socket from=-1, same tab as the tower
+(so the tower socket is stalled too: two slow consumers).
+
+Run 1: brief recipe, block 3000 ms
+  snapshots skipped on relay: 0 (3 s x 20 Hz x ~3 KB = ~180 KB < 256 KiB high-water; kernel loopback buffers absorb it)
+  ws2 events 103/103, tower eventsSeen 103/103
+
+Run 2: same snippet with block 30000 ms
+  snapshots skipped on relay: 487 total across both stalled sockets (first skip at seq 469, buffered 264126 B; last logged seq 756)
+  events dropped: 0. ws2 received 103/103 unique events (1132 snapshots), tower eventsSeen 103/103 (1215 snapshots)
+  tower lastSeq at the end 1598 (resumed live after the stall)
+Conclusion: snapshots are dropped for a slow consumer once its bufferedAmount exceeds high-water; events are never dropped.
+Note: the brief's 3 s block does not reach the threshold on localhost; 30 s was needed.

@@ -1,0 +1,19 @@
+S4 resume scenarios. File: contracts/telemetry-v0/samples/mock-12car-3lap.telemetry.ndjson
+Total messages 1599 (1495 snapshots, 103 events, 1 result); grep -c '"type":"event"' = 103. Replay speed 1 (race = 74.7 s).
+
+Scenario A: client reload mid-race (tower reloaded at seq 356, eventsSeen 29 before reload)
+  after reload the tower starts at lastSeq=-1 and the relay replays the full event log
+  final: seq 1598, eventsSeen 103 / expected 103, DOM rows 12, unique car rows 12 (no duplicate rows)
+
+Scenario B: relay killed and restarted mid-race (kill, wait 3 s, restart; 2 runs)
+  replayer log: "connection lost, retrying in 1 s" x4, then "resuming at seq 0" (new relay hello lastSeq = -1)
+  tower reconnect URLs (captured by wrapping window.WebSocket): 4 x .../watch?session=...&from=149
+    (tower lastSeq was 149 at kill, so reconnects carry from=<lastSeq>, not -1)
+  run 1 (browser tower only): final seq 1598, eventsSeen 103 / expected 103, 12 unique rows
+  run 2 (browser tower + Node ws client with same resume + eventId dedupe logic):
+    browser: seq 1598, eventsSeen 103 / 103
+    node client froms [-1,149,149,149,149]; raw messages received 1599 (= all), event messages 103, unique events 103,
+    duplicate events 0, snapshots 1495 (= all, none skipped), backwards/duplicate-seq messages 0
+Observation: after a relay restart the replayer re-sends from seq 0 paced by tMs (real time), not as a catch-up burst.
+  A consumer resumed at from=149 therefore sees nothing new until the producer re-passes seq 149 (about the time
+  elapsed before the kill), and the race effectively replays at wall-clock pace. No data lost, but not fast.
