@@ -1,0 +1,17 @@
+# Unrelated / licence-unresolved projects
+apex-gp/
+py-race/
+
+# Build output (builds live in ~/dust-build, these guard strays)
+build*/
+**/node_modules/
+**/dist/
+*.wasm
+!contracts/**/*.wasm
+
+# Large generated tick feeds; only telemetry-rate samples are committed
+**/*.tick.ndjson
+
+# OS / tooling
+.DS_Store
+.claude/settings.local.json
