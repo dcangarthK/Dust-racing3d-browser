@@ -1,9 +1,9 @@
 # DustRacing2D Upgrade — Scope & Phased Plan
 
-**Date:** 2026-10-15 (rev 2)
+**Date:** 2026-10-15 (rev 3)
 **Status:** Scoping. Architecture approved (hybrid, three.js). Phase plan awaiting approval. No code or per-phase specs written yet.
 **Codebase:** `DustRacing2D/` (v2.2.0, upstream juzzlin/DustRacing2D)
-**Reviews folded in:** two Codex assessments (architecture take; critique of rev 1). See §12 Decision log.
+**Reviews folded in:** two Codex assessments (architecture take; critique of rev 1); Phase 0 findings (`docs/phase0/findings.md`, rev 3). See §12 Decision log.
 
 ---
 
@@ -105,7 +105,7 @@ flowchart LR
 
 ### 5.1 Simulation timing
 - **Fixed tick of about 60 Hz.** Do not start at 120 Hz: physics was tuned around ~16 ms steps, and 8.33 ms would change grip, collisions, damping, AI and tyre wear.
-- **Tick length, recommended: 16 ms (62.5 Hz).** MiniCore's `stepTime(int ms)` is whole-millisecond all the way down, so a 16 ms tick is exact and needs no physics API change. The alternative is a true 16.67 ms with a `double dt` API change. Final choice is made in the Phase 1 spec.
+- **Tick length: 16 ms (62.5 Hz), confirmed in Phase 0.** MiniCore's `stepTime(int ms)` is whole-millisecond all the way down, so a 16 ms tick is exact and needs no physics API change. The S1 headless harness and the S2 drift runs both ran on it. Tick N is the state after N steps (`tMs = N × 16`). Phase 1 verifies feel parity in the desktop game.
 - **Time is an integer tick counter.** Race time = `tick × tickDuration`. Never accumulate wall-clock floats.
 - **Catch-up cap of 5 ticks per frame**, to avoid a spiral of death (matches apex-gp).
 - **Render interpolation** between the two latest sim states.
@@ -115,8 +115,9 @@ flowchart LR
 - **Same build, same platform:** identical seed + inputs + rules version → identical state hashes, compared every N ticks.
 - **Native vs WASM:**
   - race results and discrete events (laps, positions, pit stops, finishes) must agree exactly;
-  - continuous state (position, velocity, angle) is compared quantized, within tolerances set in Phase 0;
-  - exact cross-platform equality is deferred.
+  - continuous state (position, velocity, angle) must also agree exactly. Phase 0 (S2) measured bit-identical MiniCore state, native arm64 vs WASM, over 6/6 runs of up to 20000 ticks, when every native sim translation unit is built with `-ffp-contract=off` and without `-ffast-math`/`-Ofast`;
+  - fallback, only if native cannot use that flag: position 0.002 m and heading 0.001 rad, valid only for short sessions. Under default flags one collision outcome flipped at tick 17313 and the runs separated by 2.7 m, so long sessions compare discrete events and keyframes only;
+  - S2 covered MiniCore physics only. Phase 2 reruns the native-vs-WASM diff with Dust car physics (`car.cpp`, `tire.cpp`, gearbox) and game-code libm calls before this contract is relied on.
 - **Replays** store seed, inputs, rules version, sim build version and periodic authoritative keyframes. Replays still need versioning, seeking and migration as physics evolves; determinism makes them *cheaper*, not free.
 
 ### 5.3 Engine bridge
@@ -148,6 +149,7 @@ Three message types, every message carrying `sessionId`, `schemaVersion`, `seque
 - Telemetry never blocks the sim.
 - Buffer and batch. Under backpressure, drop superseded snapshots before events.
 - Per-session ordering, plus reconnect/resume from the last acknowledged `sequence`.
+- Producers keep unacknowledged history and re-send from the receiver-reported last `sequence` after a gateway or relay restart. The Phase 0 relay held its log in memory, so a restart could only be recovered by the producer re-sending (S4).
 
 ### 5.5 Transport and storage
 - **Live path:** game → WebSocket gateway → direct fan-out to subscribers, plus hot state with a TTL for late joiners. Pub/Sub is **not** on the live path: it has ~100 ms typical latency and at-least-once delivery.
@@ -205,6 +207,7 @@ Spikes. Their code is throwaway; only the answers are kept.
 ### Phase 1 — Sim stabilization (inside the existing game)
 - Fixed tick per §5.1, with catch-up cap and render interpolation.
 - Seeded RNG with reset support.
+- Deterministic collision and contact order: iterate by per-world stable object IDs, not by `MCObject *` address. Phase 0 (S1) found that MiniCore's address-keyed `std::set`/`std::map` made same-seed 12-car races diverge by tick 315; a seeded RNG alone does not make golden tests pass. Validate the change against upstream collision behaviour.
 - **Characterization tests before any refactor:** laps, sectors, positions, pit stops, finishes, collisions, AI recovery.
 - Golden race tests: same seed + inputs → same classification and state hashes.
 - State, event and input contracts written down.
@@ -213,7 +216,9 @@ Spikes. Their code is throwaway; only the answers are kept.
 **Done when:** the desktop game runs on fixed ticks with feel parity, and a characterization suite guards behaviour.
 
 ### Phase 2 — Headless extraction
-- `libdustsim`, using the approach chosen in S1 (null renderer or clean sim objects).
+- `libdustsim`, using the null-surface approach chosen in S1: MiniCore split at link time into a GL-free core and a renderer library, not a `SimObject`/`RenderObject` split.
+- Sim build flags: `-ffp-contract=off`, no `-ffast-math`/`-Ofast`, on every translation unit that feeds the simulation (§5.2).
+- Qt boundary for WASM decided in the Phase 2 spec: Qt for WebAssembly (Core, Xml, Gui) vs a Qt-free core fed by the track pipeline's JSON. S1 still needs QtGui for `QImage` surface decode; S2-B's costs (about 0.5-1 day vs 3-5 agent-days to replace Qt) are estimates.
 - Qt signals replaced by an event queue; global singleton state contained.
 - `dustsim-headless` CLI → NDJSON telemetry per §5.4.
 - Timing model: sectors and mini-sectors from route nodes, time-at-position gaps, speed traps, analog steering stored, purple/green bests.
@@ -271,7 +276,7 @@ flowchart LR
 - Multiplayer (only after replay validation works).
 - Web track editor; editor sector and DRS markers.
 - 120 Hz simulation.
-- Exact native/WASM state equality.
+- Exact native/WASM equality across CPU architectures (x86-64 native) and libm implementations. Phase 0 measured arm64 only.
 - Extras:
   - replay viewer with seek
   - time-trial ghost car
@@ -289,7 +294,7 @@ flowchart LR
 | # | Risk | Mitigation |
 |---|---|---|
 | 1 | Physics/render fusion in MiniCore (`MCObject`, `MCWorld` owns the renderer) makes extraction much larger than "remove Qt signals" | S1 spike + dependency map before committing to an approach |
-| 2 | Native vs WASM floating-point drift | Tolerance-based contract (§5.2); S2 measures it |
+| 2 | Native vs WASM floating-point drift | `-ffp-contract=off` on native sim code gives exact equality (S2); tolerance fallback for short sessions only (§5.2) |
 | 3 | Fixed tick changes feel or AI behaviour | 16 ms tick close to the old ~16 ms tuning; characterization tests first |
 | 4 | apex-gp frame time is too heavy for mid-range hardware | Quality presets, dynamic resolution, CI frame budgets |
 | 5 | Fragile startup paths (#144, `MCMesh`) | Golden tests cover race start |
@@ -328,3 +333,9 @@ Approve the phase plan, then brainstorm **Phase 0** (toolchain + spikes S1–S4)
 | Tiered storage: GCS raw, BigQuery summaries | Codex critique |
 | Rules profiles; ship one first | Codex critique (trimmed to one profile) |
 | Emscripten determinism spike instead of a Qt-WASM spike | Rev 2 |
+| Tick length fixed at 16 ms (§5.1) | Rev 3; Phase 0 decision 2, `docs/phase0/findings.md` |
+| Exact native/WASM equality with `-ffp-contract=off` replaces tolerance-first contract; tolerances become a short-session fallback (§5.2, §8, risk 2, Phase 2 build flags) | Rev 3; Phase 0 S2, decision 3, `docs/phase0/findings.md` |
+| Producers retain history and re-send after a gateway restart (§5.4) | Rev 3; Phase 0 S4/S5, decision 6, `docs/phase0/findings.md` |
+| Deterministic collision order by stable object IDs in Phase 1 | Rev 3; Phase 0 S1 repeatability, `docs/phase0/findings.md` |
+| Null-surface extraction with link-time MiniCore core/renderer split (Phase 2) | Rev 3; Phase 0 S1, decision 1, `docs/phase0/findings.md` |
+| Qt-for-WASM vs Qt-free core decided in the Phase 2 spec | Rev 3; Phase 0 S1/S2-B, decision 4, `docs/phase0/findings.md` |

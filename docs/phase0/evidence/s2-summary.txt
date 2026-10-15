@@ -1,0 +1,8 @@
+# native (default flags) vs wasm
+{"firstDivergentTick":2,"maxPosErr":0.0000620000000139953,"maxAngleErr":0.00007700000000454565,"identical":false}
+# native -ffp-contract=off vs wasm
+{"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+# native vs native (sanity)
+{"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+# native vs native -ffp-contract=off
+{"firstDivergentTick":2,"maxPosErr":0.0000620000000139953,"maxAngleErr":0.00007700000000454565,"identical":false}

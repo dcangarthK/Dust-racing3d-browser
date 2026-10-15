@@ -1,0 +1,55 @@
+## seed=1 ticks=3000 objects=12
+collisions[n]: collision events: 55
+collisions[f]: collision events: 55
+collisions[w]: collision events: 55
+per-tick collision counts native-default vs wasm: identical
+per-tick collision counts native-nofma vs wasm: identical
+native-vs-wasm {"firstDivergentTick":1,"maxPosErr":0.00003100000003541936,"maxAngleErr":0.000038200000005872425,"identical":false}
+nofma-vs-wasm  {"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+## seed=7 ticks=20000 objects=12
+collisions[n]: collision events: 555
+collisions[f]: collision events: 555
+collisions[w]: collision events: 555
+per-tick collision counts native-default vs wasm: identical
+per-tick collision counts native-nofma vs wasm: identical
+native-vs-wasm {"firstDivergentTick":2,"maxPosErr":0.018824101856133563,"maxAngleErr":0.025733999999999924,"identical":false}
+nofma-vs-wasm  {"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+## seed=99 ticks=10000 objects=48
+collisions[n]: collision events: 1616
+collisions[f]: collision events: 1616
+collisions[w]: collision events: 1616
+per-tick collision counts native-default vs wasm: identical
+per-tick collision counts native-nofma vs wasm: identical
+native-vs-wasm {"firstDivergentTick":1,"maxPosErr":0.014364010930060652,"maxAngleErr":0.0201420000000212,"identical":false}
+nofma-vs-wasm  {"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+## seed=42 ticks=3000 objects=12
+collisions[n]: collision events: 105
+collisions[f]: collision events: 105
+collisions[w]: collision events: 105
+per-tick collision counts native-default vs wasm: identical
+per-tick collision counts native-nofma vs wasm: identical
+native-vs-wasm {"firstDivergentTick":2,"maxPosErr":0.0000620000000139953,"maxAngleErr":0.00007700000000454565,"identical":false}
+nofma-vs-wasm  {"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+## seed=42 ticks=10000 objects=12
+collisions[n]: collision events: 270
+collisions[f]: collision events: 270
+collisions[w]: collision events: 270
+per-tick collision counts native-default vs wasm: identical
+per-tick collision counts native-nofma vs wasm: identical
+native-vs-wasm {"firstDivergentTick":2,"maxPosErr":0.00012403628504608277,"maxAngleErr":0.00018400000010387885,"identical":false}
+nofma-vs-wasm  {"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+## seed=42 ticks=20000 objects=12
+collisions[n]: collision events: 540
+collisions[f]: collision events: 541
+collisions[w]: collision events: 541
+per-tick collision counts native-default vs wasm: DIFFER (first at 17313)
+per-tick collision counts native-nofma vs wasm: identical
+native-vs-wasm {"firstDivergentTick":2,"maxPosErr":54.63811452586534,"maxAngleErr":11.303467000000069,"identical":false}
+nofma-vs-wasm  {"firstDivergentTick":null,"maxPosErr":0,"maxAngleErr":0,"identical":true}
+  tick<=499 running maxPosErr=0 maxAngleErr=1.91e-05
+  tick<=999 running maxPosErr=3.1e-05 maxAngleErr=3.06e-05
+  tick<=2999 running maxPosErr=6.2e-05 maxAngleErr=7.7e-05
+  tick<=4999 running maxPosErr=8.76812e-05 maxAngleErr=0.000138
+  tick<=9999 running maxPosErr=0.000124036 maxAngleErr=0.000184
+  tick<=14999 running maxPosErr=0.0268419 maxAngleErr=0.008637
+  tick<=19999 running maxPosErr=54.6381 maxAngleErr=11.3035

@@ -1,0 +1,25 @@
+audiosource.cpp : QObject 
+carsoundeffectmanager.cpp : AudioSource QArrayData QString QTimer 
+difficultyprofile.cpp : QObject 
+graphicsfactory.cpp : MCSurfaceManager QColor QImage QPainter QPixmap 
+harness.cpp : QArrayData QCoreApplication QMetaObject QObject QString TrackLoader 
+map.cpp : QArrayData QString TrackTile 
+mcmeshconfigloader.cc : QArrayData QDomDocument QDomElement QDomNode QFile QFileDevice QString 
+mcmeshloader.cc : QArrayData QFile QRegularExpression QString QTextStream QtPrivate 
+mcmeshmanager.cc : MCMeshLoader QArrayData QString 
+mcsurfaceconfigloader.cc : QArrayData QDomDocument QDomElement QDomNode QFile QFileDevice QString 
+mcsurfacemanager.cc : QArrayData QFile QIODevice QImage QPaintDevice QString 
+mctexturefontconfigloader.cc : QArrayData QDomDocument QDomElement QDomNode QFile QFileDevice QString 
+objectbase.cpp : QArrayData 
+pit.cpp : QObject 
+race.cpp : AudioSource QArrayData QMetaObject QObject QString QTimer Race Timing 
+settings.cpp : QArrayData QSettings QString QVariant 
+stub_game.cpp : QArrayData QObject QTimer QTranslator 
+timing.cpp : QArrayData QObject QString 
+trackdata.cpp : QArrayData QString TrackDataBase 
+trackdatabase.cpp : QArrayData QString 
+trackloader.cpp : QArrayData QDir QDomDocument QDomElement QDomNode QFile QFileDevice QString TrackData TrackObjectFactory 
+trackobject.cpp : ObjectBase QArrayData 
+trackobjectfactory.cpp : QArrayData QString TrackObject 
+tracktile.cpp : TrackTileBase 
+tracktilebase.cpp : QArrayData QString QtPrivate 

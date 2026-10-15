@@ -1,0 +1,30 @@
+# S1 repeatability evidence (branch spike/s1-headless)
+# Generated 2026-10-15T16:38Z on macOS 15.6.1 arm64; binary ~/dust-build/s1/s1_headless (RelWithDebInfo)
+
+## run_twice.sh, 1 car (Step 9)
+$ spikes/s1-headless/run_twice.sh
+PASS:     5788 ticks identical for seed 42 (1 car(s))
+
+## run_twice.sh, 12 cars (Step 10)
+$ spikes/s1-headless/run_twice.sh ~/dust-build/s1/s1_headless 12
+PASS:     7721 ticks identical for seed 42 (12 car(s))
+
+## Seed sensitivity, 1 car (run_twice.sh only warns for >1 car)
+seed 42: 5788 ticks; seed 43: 5733 ticks; first differing hash line: 69
+
+## Six consecutive 12-car runs, seed 42, WITH the serial-order fix (MiniCore hack rows 39-42)
+run 1: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e
+run 2: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e
+run 3: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e
+run 4: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e
+run 5: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e
+run 6: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e
+
+## Six consecutive 12-car runs, seed 42, WITHOUT the fix (same tree with rows 40-42 reverted, built to ~/dust-build/s1-nofix)
+run 1: 7739 ticks, md5 41922f4a24750059f166a6085017d925, first line differing from run 1: 
+run 2: 7752 ticks, md5 c20e78c831fd5c3f6f9a2bdf9f465fe3, first line differing from run 1: 1011
+run 3: 7721 ticks, md5 17d135028405dde73817afa5ff6e392e, first line differing from run 1: 1011
+run 4: 7715 ticks, md5 a606a8f48e7cc09d4f3c84355a204770, first line differing from run 1: 316
+run 5: 7724 ticks, md5 f90dbde450f34678d7198003d264e7f9, first line differing from run 1: 1011
+run 6: 7719 ticks, md5 df68006b4449665ea0a88efba7ae3459, first line differing from run 1: 1011
+(hash line N is tick N-1)

@@ -1,0 +1,68 @@
+# Phase 0 findings
+
+All five boundaries are GO-with-conditions. None is NO-GO, so no NO-GO response from spec §8 applies. The findings change the rev 2 plan in six places, so the scope doc is now rev 3 with one decision-log row per change, each citing this file: 16 ms tick fixed (§5.1); exact native/WASM equality with `-ffp-contract=off` (§5.2, §8, risk 2); producers keep history for re-send (§5.4); deterministic collision order in Phase 1; null-surface extraction with a link-time MiniCore split (Phase 2); the Qt-for-WASM boundary decided in the Phase 2 spec.
+
+## Summary
+
+| Boundary | Verdict | Key number | Implication for plan |
+|---|---|---|---|
+| S1 headless sim | GO-with-conditions | 42 hacks; repeatable yes: 5788 ticks (1 car) and 7721 ticks (12 cars), with the 12-car run identical in 7 runs, but only after 4 determinism hacks (rows 39-42) | Phase 2 uses the null surface plus a link-time MiniCore core/renderer split, not a SimObject/RenderObject split. Phase 1 golden tests need deterministic collision order (stable IDs) as well as a seeded RNG. QtGui (and with it OpenGL.framework) is still linked. |
+| S2 native↔WASM | GO-with-conditions | Native with `-ffp-contract=off` vs WASM: no divergent tick, max err 0 (6/6 runs, up to 20000 ticks, 1616 collisions). Default native flags: first divergent tick 2; worst error before any event flip 1.34 mm and 4.5e-4 rad; one collision flip at tick 17313, after which the runs end 2.7 m and 11.3 deg apart | §5.2 changes from "tolerances, exact equality deferred" to "exact equality with `-ffp-contract=off`" (measured on MiniCore, arm64 only). Tolerances are a short-session fallback. S2-B (full harness in WASM) not attempted. |
+| S3 three.js render | GO-with-conditions (file says GO; overridden below) | p95 frame 9.8 ms (p50 8.3 ms) at about 120 Hz with 12 box cars. This is the vsync-paced rAF interval, not GPU cost | Track-to-scene mapping is proven: 665 tiles, 28 route nodes, and S1 cars sit on the route line in S5. Renderer needs only `tMs`, `id`, `x`, `y`, `heading`. apex-gp car lifts cleanly (7 files), but its cost for 12 cars and the GPU headroom are unmeasured. Reuse table unchanged. |
+| S4 telemetry contract | GO-with-conditions (file says GO; overridden below) | Tower latency p50 1 ms / p95 3 ms; events lost 0 (103/103 after client reload and after relay restart, 0 duplicates); 30 s stall: 487 snapshots skipped, 0 events dropped | Contract v0 is workable end to end. The relay log is in memory only, so after a relay restart the producer must keep its history and re-send it: §5.4 now says this. S5 found contract gaps (decision 6) that S4's mock feed hid. |
+| S5 integration | GO-with-conditions | In sync: yes, by eye (one relay stream drives tower and render; tower latency p50 1 ms / p95 3 ms; render frame p95 10.0-10.3 ms with 400 live frames). The user has not yet confirmed watching it | The plumbing works with real S1 data and no mocked cars. The conditions are S1 contract gaps (no `lapMs`, reversed grid order, `speedKmh` 12 % low), not S5 faults. |
+
+### Verdict calibration
+
+- **S3 is GO-with-conditions, not GO.** The frame-time figure measures the vsync-paced rAF interval at about 120 Hz, so it shows that a 12-box scene holds the refresh rate. It does not show GPU headroom. The smoothness test used the mock's constant-speed circle, so it never exercised acceleration. S5 later rendered the real S1 feed (real braking and acceleration) with p95 10.0-10.3 ms, but only judged smoothness by eye. The apex-gp car was never measured at 12 cars. Conditions: (1) measure GPU cost and interpolation under acceleration with real apex-gp visuals before Phase 3 sets frame budgets; (2) pin one three.js version (apex-gp declares ^0.185.1, the spike pins 0.176.0).
+- **S4 is GO-with-conditions, not GO.** Resume and restart lost 0 events, but only because the replayer could re-send the whole session from seq 0. The relay keeps its log in memory only. After a restart, consumers stall until the producer gets back past their `lastSeq`, and a real producer has to keep its full history or burst-resend it. S4's "Contract v0 amendments needed: none" was right for the mock feed, but S5 then showed that `lap` events from S1 carry no `lapMs`, and that `/watch` without `from` delivers only new frames. Conditions: the producer-retention rule (now in scope §5.4) and the decision 6 amendments.
+- **S1, S2 and S5 keep their per-spike verdicts.** S1 is repeatable only with the 4 unguarded determinism hacks. Rows 40-42 also change upstream's collision order and row 41 changes which pairs each resolver pass re-tests, so desktop collision behaviour with them is unvalidated. The repeatability evidence covers one track and one seed. S2's exact match covers MiniCore on arm64 only (no Dust car physics, no libm calls from game code, no x86-64). S5's user confirmation is pending.
+
+## Decisions
+
+1. **Extraction approach: null surface (`MC_HEADLESS`), not a SimObject/RenderObject split.** S1 ran full 3-lap races (1 car and 12 cars) with no GL context and no offscreen fallback. Physics reads only CPU-side geometry: surface width, height and z come from the decoded image and the metadata, never from a texture. None of the 42 hacks fakes state that physics reads. A full split would mean rewriting `MCObject`, whose pimpl owns both shape and view. Phase 2 instead turns the 23 GL guards (rows 1-23) into a link-time split of MiniCore into a GL-free core and a renderer library. It also does the bounded refactors from rows 24-42: a `SimConfig` instead of the `Game` singleton, no `Renderer::instance()` in factories, and particles, audio and number plates as render-side subscribers.
+2. **Tick length: 16 ms confirmed.** S1 and S2 both ran at a 16 ms fixed tick on MiniCore's whole-millisecond `stepTime(int)` API with no physics API change. The units check out: velocity is world units per tick, so m/s = |v| × 0.05 × 1000 / 16 = |v| × 3.125, and position-derived speed ÷ emitted |(vx, vy)| has median 1.0016. Headless throughput is about 17-40× real time, so the tick fits the budget. Phase 1 still has to show feel parity in the desktop game. Fix the off-by-one in tick labels: the state after N steps is tick N, `tMs = N × 16`.
+3. **Determinism tolerances (from S2):** the primary contract is exact native↔WASM equality: position 0, heading 0, discrete events exact. This needs `-ffp-contract=off` and no `-ffast-math`/`-Ofast` on every native translation unit that feeds the sim (WASM needs no flag). Fallback, only if native cannot use the flag: position 0.002 m and heading 0.001 rad. These hold only for sessions shorter than the first discrete-event flip seen (tick 17313 in 6 runs); the worst case before it was 1.34 mm, about 1.5× under the limit. Discrete events are always exact, never toleranced. Under default flags, long sessions are chaotic, so compare events and keyframes only. This was measured only for MiniCore on arm64. Phase 2 must rerun the diff with Dust car physics (`car.cpp`, `tire.cpp`, gearbox) and game-code libm calls before relying on it.
+4. **Qt status: Gui still needed. "QtCore at most" has not been shown.** The S1 harness links Qt Core, Xml and Gui. Gui is needed for `QImage` decode and scaling in `MCSurfaceManager` and for `QColor`, and `QtGui.framework` itself links `OpenGL.framework`. The harness's own objects reference 0 GL symbols. S2-A showed the MiniCore physics core is Qt-free and builds unchanged under Emscripten. S2-B counted 128 undefined Qt symbols across 25 translation units of the harness (strings, signals/timers, XML, files, settings, images) but did not build them for WASM (disk floor). Estimates, not yet validated: Qt for WebAssembly (qtbase Core/Xml/Gui) about 0.5-1 day plus 1-2 GB, against about 3-5 agent-days to replace Qt. A third route is a Qt-free WASM core fed by the JSON track/asset pipeline Phase 2 already plans. The Phase 2 spec chooses between them (scope rev 3, Phase 2). Before that, it checks Qt 6.12 wasm against the emsdk 4.0.10 pin and a QCoreApplication-only Node harness.
+5. **apex-gp reuse cost: low for the car model; licence still blocks committing.** `createCarModel` lifted cleanly with a closure of 7 files (`car/{chassis,livery,materials,wheels}.js` at about 7.8k lines, `core/{assets,rng}.js`, `textures/procedural.js`) and no engine or game state. Each car took about 1.7 s to build. Costs: it needs a DOM canvas for procedural textures; three.js versions must be unified (apex-gp declares ^0.185.1, the spike pins 0.176.0); the model's nose points to −z, so it needs a heading offset; build time and memory for 12 cars with per-car materials are unmeasured. The Dust `.trk` → three.js tile scene path works (665 tiles and 28 nodes for Monza; the coordinate mapping is scene x = x_m, z = −y_m, heading = rotation.y). Nothing from apex-gp is committed until the ISC notice and ownership are confirmed (scope §2, risk 6). The reuse table in scope §6 stays as it is.
+6. **Contract v0 amendments** (apply to `contracts/telemetry-v0` before the Phase 1/2 emitter):
+   - `lap` event data gains `lapMs` (schema and S1 emitter). S1 emits `{lap}` only, so the tower's "Last lap" column stays empty (S5).
+   - `speedKmh` is defined as true speed, `|(vx, vy)| × 3.6` in m/s terms. The game's `speedInKmh()` (×2.75 display tuning) reads about 12 % low, so either derive `speedKmh` from velocity or rename the display value (S1).
+   - Tick numbering: tick N is the state after N steps of 16 ms. S1's labels lag one step (S1).
+   - `progress` is continuous `(nodeIndex + fraction) / nodeCount` through the line, from the sim. S1's lap rolls over on entering checkpoint 0's box, so the last ~4 % of each lap is never reported, which breaks time-at-position gaps near the line (S1).
+   - `pos` before the first checkpoint is the grid slot. `Race::position()` is 0 until checkpoint 0, and the emitter's clamp to 1 masked that: every car reports `pos` 1 at tMs 0. The grid order in S1 is reversed against the driving direction (car 0 at the rear but labelled pole), a harness id-to-slot bug to fix in the Phase 2 emitter (S1, S5).
+   - `sessionId` is unique per run. Both S1 samples share one, so a relay that already holds the session ignores a replay (S1, S5).
+   - Transport semantics (relay now, gateway in Phase 4): the producer keeps unacknowledged history and re-sends from the relay-reported `lastSeq`. A consumer that connects without `from` gets current state (latest snapshot) plus the event history, not only new frames (S4, S5).
+   - No change to the snapshot shape for rendering: S3 used only `tMs`, `cars[].id`, `x`, `y`, `heading`.
+
+## Per-spike detail
+
+[S1](findings/s1.md) · [S2](findings/s2.md) · [S3](findings/s3.md) · [S4](findings/s4.md) · [S5](findings/s5.md) · [Dependency map and hack log](dependency-map.md) · Evidence: [`evidence/`](evidence/)
+
+## Open items carried out of Phase 0
+
+- Exit criterion 6: the user has not yet confirmed watching the S5 demo (`findings/s5.md`, "User watched end to end: pending"). There is no `.mov` recording.
+- The moved-aside upstream clone at `../DustRacing2D-upstream-clone` (78 MB) is waiting on the user's decision to delete it.
+- Spike code is archived in tags `phase0-spikes` (S1/S2 branches, including the DustRacing2D hacks) and `phase0-spikes-main` (S3/S4/S5 on `main`, with the npm lockfiles). `DustRacing2D/` on `main` is unchanged from upstream.
+- Unvalidated: desktop collision behaviour with rows 40-42 (especially row 41); repeatability on tracks and seeds other than Monza/42; the S2-B cost estimates; GPU cost of apex-gp visuals.
+- Deferred minor issues from task reviews (relay `from` parsing, schema looseness, `ws`/`vite` advisories on localhost-only throwaway code) end with the spike code. Phase 4's gateway must not inherit them.
+
+## Toolchain record
+
+Generated by `tools/bootstrap.sh` (`docs/phase0/toolchain-versions.txt`):
+
+```text
+# Toolchain versions — generated by tools/bootstrap.sh on 2026-10-15T15:10:43Z
+macOS: 15.6.1 arm64
+clang: Apple clang version 16.0.0 (clang-1600.0.26.4)
+cmake: cmake 4.4.4
+ninja: ninja 1.13.2
+pkg-config: pkgconf 2.5.1
+qt: qt 6.12.0
+openal-soft: openal-soft 1.25.2
+libvorbis: libvorbis 1.3.7
+node: v25.8.1
+emcc: emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.10 (b7dc6e5747465580df5984e723b9d1f10d8e804b)
+```
+
+npm pins (exact, from lockfiles): `ajv@8.17.1` and `ajv-formats@3.0.1` (`contracts/telemetry-v0`); `three@0.176.0` and `vite@6.3.5` (S3); `ws@8.18.2` (S4). The S3/S4 lockfiles are kept in tag `phase0-spikes-main`.

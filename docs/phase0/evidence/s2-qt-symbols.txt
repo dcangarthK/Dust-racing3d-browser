@@ -1,0 +1,128 @@
+QArrayData::allocate(QArrayData**, long long, long long, long long, QArrayData::AllocationOption)
+QArrayData::deallocate(QArrayData*, long long, long long)
+QArrayData::reallocateUnaligned(QArrayData*, void*, long long, long long, QArrayData::AllocationOption)
+QColor::QColor(Qt::GlobalColor)
+QCoreApplication::QCoreApplication(int&, char**, int)
+QCoreApplication::processEvents(QFlags<QEventLoop::ProcessEventsFlag>)
+QCoreApplication::~QCoreApplication()
+QDebug::putTimeUnit(long long, long long)
+QDir::QDir(QString const&)
+QDir::entryList(QList<QString> const&, QFlags<QDir::Filter>, QFlags<QDir::SortFlag>) const
+QDir::~QDir()
+QDomDocument::QDomDocument()
+QDomDocument::documentElement() const
+QDomDocument::setContent(QIODevice*, QFlags<QDomDocument::ParseOption>)
+QDomDocument::~QDomDocument()
+QDomElement::attribute(QString const&, QString const&) const
+QDomElement::hasAttribute(QString const&) const
+QDomNode::firstChild() const
+QDomNode::isNull() const
+QDomNode::nextSibling() const
+QDomNode::nodeName() const
+QDomNode::operator=(QDomNode const&)
+QDomNode::toElement() const
+QDomNode::~QDomNode()
+QFile::QFile(QString const&)
+QFile::open(QFlags<QIODeviceBase::OpenModeFlag>)
+QFile::~QFile()
+QFileDevice::close()
+QIODevice::readAll()
+QImage::QImage()
+QImage::QImage(QImage const&)
+QImage::QImage(int, int, QImage::Format)
+QImage::fill(Qt::GlobalColor)
+QImage::height() const
+QImage::loadFromData(QByteArrayView, char const*)
+QImage::pixel(int, int) const
+QImage::scaled(QSize const&, Qt::AspectRatioMode, Qt::TransformationMode) const
+QImage::setPixel(int, int, unsigned int)
+QImage::width() const
+QImage::~QImage()
+QMetaObject::Connection::~Connection()
+QMetaObject::activate(QObject*, QMetaObject const*, int, void**)
+QMetaObject::tr(char const*, char const*, int) const
+QObject::QObject(QObject*)
+QObject::childEvent(QChildEvent*)
+QObject::connectImpl(QObject const*, void**, QObject const*, void**, QtPrivate::QSlotObjectBase*, Qt::ConnectionType, int const*, QMetaObject const*)
+QObject::connectNotify(QMetaMethod const&)
+QObject::customEvent(QEvent*)
+QObject::disconnectNotify(QMetaMethod const&)
+QObject::event(QEvent*)
+QObject::eventFilter(QObject*, QEvent*)
+QObject::qt_metacall(QMetaObject::Call, int, void**)
+QObject::qt_metacast(char const*)
+QObject::staticMetaObject
+QObject::timerEvent(QTimerEvent*)
+QObject::~QObject()
+QObjectData::dynamicMetaObject() const
+QPaintDevice::QPaintDevice()
+QPainter::QPainter()
+QPainter::begin(QPaintDevice*)
+QPainter::drawEllipse(QRect const&)
+QPainter::end()
+QPainter::setBrush(QColor)
+QPainter::~QPainter()
+QPixmap::QPixmap(int, int)
+QPixmap::fill(QColor const&)
+QPixmap::rect() const
+QPixmap::toImage() const
+QPixmap::~QPixmap()
+QRegularExpression::QRegularExpression(QString const&, QFlags<QRegularExpression::PatternOption>)
+QRegularExpression::~QRegularExpression()
+QSettings::QSettings(QObject*)
+QSettings::beginGroup(QAnyStringView)
+QSettings::endGroup()
+QSettings::setValue(QAnyStringView, QVariant const&)
+QSettings::value(QAnyStringView, QVariant const&) const
+QSettings::~QSettings()
+QString::_empty
+QString::append(QBasicUtf8StringView<false>)
+QString::append(QChar)
+QString::append(QString const&)
+QString::arg_impl(QAnyStringView, int, QChar) const
+QString::arg_impl(long long, int, int, QChar) const
+QString::asprintf(char const*, ...)
+QString::assign(QAnyStringView)
+QString::compare_helper(QChar const*, long long, char const*, long long, Qt::CaseSensitivity)
+QString::fromUcs4(char32_t const*, long long)
+QString::fromUtf8(QByteArrayView)
+QString::operator=(QString const&)
+QString::replace(QRegularExpression const&, QString const&)
+QString::replace(QString const&, QString const&, Qt::CaseSensitivity)
+QString::split(QChar, QFlags<Qt::SplitBehaviorFlags>, Qt::CaseSensitivity) const
+QString::split(QRegularExpression const&, QFlags<Qt::SplitBehaviorFlags>) const
+QString::startsWith(QChar, Qt::CaseSensitivity) const
+QString::toFloat(bool*) const
+QString::toIntegral_helper(QStringView, bool*, int)
+QString::toIntegral_helper(QStringView, bool*, unsigned int)
+QString::toStdString() const
+QString::toUcs4_helper(char16_t const*, long long, char32_t*)
+QTextStream::QTextStream(QIODevice*)
+QTextStream::operator<<(char)
+QTextStream::operator<<(long long)
+QTextStream::readLine(long long)
+QTextStream::setEncoding(QStringConverter::Encoding)
+QTextStream::~QTextStream()
+QTimer::QTimer(QObject*)
+QTimer::isActive() const
+QTimer::setInterval(int)
+QTimer::setInterval(std::__1::chrono::duration<long long, std::__1::ratio<1l, 1000l>>)
+QTimer::setSingleShot(bool)
+QTimer::start()
+QTimer::~QTimer()
+QTranslator::QTranslator(QObject*)
+QTranslator::~QTranslator()
+QVariant::QVariant(bool)
+QVariant::QVariant(int)
+QVariant::toBool() const
+QVariant::toInt(bool*) const
+QVariant::~QVariant()
+QtPrivate::QMetaTypeInterfaceWrapper<QString>::metaType
+QtPrivate::QMetaTypeInterfaceWrapper<bool>::metaType
+QtPrivate::QMetaTypeInterfaceWrapper<float>::metaType
+QtPrivate::QMetaTypeInterfaceWrapper<int>::metaType
+QtPrivate::QMetaTypeInterfaceWrapper<unsigned long>::metaType
+QtPrivate::compareStrings(QStringView, QStringView, Qt::CaseSensitivity)
+QtPrivate::equalStrings(QStringView, QStringView)
+typeinfo for QObject
+vtable for QImage
