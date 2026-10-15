@@ -1,0 +1,7 @@
+{
+  "name": "s4-timing",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.mjs", "relay": "node relay.mjs", "replay": "node replay.mjs" },
+  "dependencies": { "ws": "8.18.2" }
+}
