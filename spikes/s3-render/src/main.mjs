@@ -79,6 +79,19 @@ async function loadFeed(url) {
 const trk = parseTrk(await (await fetch(`/levels/${trackName}.trk`)).text());
 scene.add(buildTrack(trk));
 const frames = await loadFeed(feedUrl);
+// Live mode (S5): `?live=ws://localhost:8787/watch?session=<id>` replaces the file feed with the relay stream.
+const liveUrl = params.get('live');
+if (liveUrl) {
+  frames.length = 0;
+  const ws = new WebSocket(liveUrl);
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.type !== 'snapshot') return;
+    frames.push({ tMs: m.tMs, cars: m.cars });
+    for (const c of m.cars) if (!cars.has(c.id)) { const mesh = makeCar(palette[c.id % palette.length]); cars.set(c.id, mesh); scene.add(mesh); }
+    if (frames.length > 400) frames.splice(0, frames.length - 400);
+  };
+}
 const palette = [0xe10600, 0x00a3e0, 0xffd400, 0x00c853, 0xaa00ff, 0xff6d00, 0xffffff, 0x222222, 0x795548, 0x00bfa5, 0xff4081, 0x9e9e9e];
 const cars = new Map();
 for (const c of frames[0]?.cars ?? []) { const m = makeCar(palette[c.id % palette.length]); cars.set(c.id, m); scene.add(m); }
@@ -92,7 +105,7 @@ let last = performance.now();
 function frame(now) {
   stats.samples.push(now - last);
   last = now;
-  const tMs = simStart + (now - t0);
+  const tMs = liveUrl && frames.length ? frames[frames.length - 1].tMs - 100 : simStart + (now - t0);
   const poses = sampleAt(frames, tMs);
   for (const [id, p] of poses) {
     const mesh = cars.get(id);
